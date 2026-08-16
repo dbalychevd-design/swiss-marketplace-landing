@@ -16,6 +16,7 @@ export default defineConfig(() => {
         input: {
           main: path.resolve(__dirname, 'index.html'),
           step2: path.resolve(__dirname, 'step-2.html'),
+          step3: path.resolve(__dirname, 'step-3.html'),
         },
       },
     },
