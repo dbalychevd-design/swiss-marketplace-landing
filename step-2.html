@@ -1407,9 +1407,9 @@
               <div class="dispatch-val-box prominent">
                 <div>
                   <div class="prominent-city-title" id="buyer-city-val">8001 Zürich</div>
-                  <div style="font-size: 0.78rem; color: var(--neutral-600);">Kanton Zürich • Official Swiss Post Delivery Zone</div>
+                  <div id="buyer-canton-info" style="font-size: 0.78rem; color: var(--neutral-600);">Kanton Zürich • Official Swiss Post Delivery Zone</div>
                 </div>
-                <span class="prominent-canton-tag">ZH</span>
+                <span class="prominent-canton-tag" id="buyer-canton-tag">ZH</span>
               </div>
             </div>
 
@@ -1891,7 +1891,11 @@
 
       function parseShippingText(text) {
         const result = { city: '', zip: '', name: '', street: '' };
-        String(text || '').split(/\n|<br\s*\/?>(?!$)/i).forEach(line => {
+        const normalizedText = String(text || '')
+          .replace(/\\r?\\n/g, '\n')
+          .replace(/\r?\n/g, '\n')
+          .replace(/<br\s*\/?>(?!$)/gi, '\n');
+        normalizedText.split('\n').forEach(line => {
           const clean = line.replace(/<[^>]*>/g, '').trim();
           const separator = clean.indexOf(':');
           if (separator < 0) return;
@@ -1935,9 +1939,13 @@
         const cityEl = document.getElementById('buyer-city-val');
         const nameEl = document.getElementById('buyer-name-val');
         const streetEl = document.getElementById('buyer-street-val');
+        const cantonInfoEl = document.getElementById('buyer-canton-info');
+        const cantonTagEl = document.getElementById('buyer-canton-tag');
         if (nameEl && shipping.name) nameEl.textContent = shipping.name;
         if (cityEl && (shipping.zip || shipping.city)) cityEl.textContent = `${shipping.zip}${shipping.zip && shipping.city ? ' ' : ''}${shipping.city}`;
         if (streetEl && shipping.street) streetEl.textContent = shipping.street;
+        if (cantonInfoEl && shipping.city) cantonInfoEl.textContent = `${shipping.city} • Official Swiss Post Delivery Zone`;
+        if (cantonTagEl && shipping.city) cantonTagEl.textContent = (shipping.city.match(/\\b[A-Z]{2}\\b/) || ['CH'])[0];
         const backLink = document.getElementById('link-back-step1');
         if (backLink) backLink.href = `index.html${getStep2Slug() ? `?slug=${encodeURIComponent(getStep2Slug())}` : ''}`;
       }
