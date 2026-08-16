@@ -1892,7 +1892,8 @@
       function parseShippingText(text) {
         const result = { city: '', zip: '', name: '', street: '' };
         const normalizedText = String(text || '')
-          .replace(/\\r?\\n/g, '\n')
+          .replace(/\\r\\n/g, '\n')
+          .replace(/\\n/g, '\n')
           .replace(/\r?\n/g, '\n')
           .replace(/<br\s*\/?>(?!$)/gi, '\n');
         normalizedText.split('\n').forEach(line => {
@@ -1945,7 +1946,7 @@
         if (cityEl && (shipping.zip || shipping.city)) cityEl.textContent = `${shipping.zip}${shipping.zip && shipping.city ? ' ' : ''}${shipping.city}`;
         if (streetEl && shipping.street) streetEl.textContent = shipping.street;
         if (cantonInfoEl && shipping.city) cantonInfoEl.textContent = `${shipping.city} • Official Swiss Post Delivery Zone`;
-        if (cantonTagEl && shipping.city) cantonTagEl.textContent = (shipping.city.match(/\\b[A-Z]{2}\\b/) || ['CH'])[0];
+        if (cantonTagEl && shipping.city) cantonTagEl.textContent = (shipping.city.match(/\b[A-Z]{2}\b/) || ['CH'])[0];
         const backLink = document.getElementById('link-back-step1');
         if (backLink) backLink.href = `index.html${getStep2Slug() ? `?slug=${encodeURIComponent(getStep2Slug())}` : ''}`;
       }
