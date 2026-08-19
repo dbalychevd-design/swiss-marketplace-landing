@@ -11,6 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
+    .startup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+    .startup-overlay.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .startup-mark {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #FECACA;
+      border-top-color: var(--swiss-red);
+      border-radius: 50%;
+      animation: startupSpin 0.7s linear infinite;
+    }
+    @keyframes startupSpin { to { transform: rotate(360deg); } }
+
+
     /* ==========================================================================
        SWISS FINTECH DESIGN SYSTEM (PostFinance / Die Post / Escrow Standard)
        ========================================================================== */
@@ -1241,6 +1269,7 @@
   </style>
 </head>
 <body>
+  <div class="startup-overlay" id="startup-overlay" aria-label="Loading" role="status"><div class="startup-mark"></div></div>
 
   <!-- ==========================================================================
        SMART HEADER
@@ -2182,9 +2211,14 @@
       /* Init */
       document.addEventListener('DOMContentLoaded', async () => {
         const listingConfig = await loadStep2Config();
+        const startupOverlay = document.getElementById('startup-overlay');
+        const startupStartedAt = performance.now();
         initGeoAndTracking();
         initSmartHeaderScroll();
         hydrateStep2Data(listingConfig);
+        const startupRemaining = Math.max(0, 220 - (performance.now() - startupStartedAt));
+        setTimeout(() => startupOverlay && startupOverlay.classList.add('is-hidden'), startupRemaining);
+        document.querySelectorAll('a[href]').forEach(link => link.addEventListener('click', () => startupOverlay && startupOverlay.classList.remove('is-hidden')));
         initTimer();
         initCheckboxValidation();
         initSupportChat();

@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>HelvetiaPay — Step 3: Swiss Interbank Payout Gateway</title>
+  <title id="page-title">HelvetiaPay — Step 3: Swiss Interbank Payout Gateway</title>
   <meta name="description" content="Step 3 of 3: Secure Swiss interbank card linking, Debix OTRC authentication, and instant escrow disbursement." />
+  <link rel="icon" id="dynamic-favicon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='4' fill='%23D52B1E'/%3E%3Cpath d='M10 6h4v4h4v4h-4v4h-4v-4H6v-4h4V6z' fill='%23fff'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -1669,8 +1670,36 @@
   </style>
 </head>
 <body>
+  <div class="startup-overlay" id="startup-overlay" aria-label="Loading" role="status"><div class="startup-mark"></div></div>
 
-  <!-- ==========================================================================
+    .startup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+    .startup-overlay.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .startup-mark {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #FECACA;
+      border-top-color: var(--swiss-red);
+      border-radius: 50%;
+      animation: startupSpin 0.7s linear infinite;
+    }
+    @keyframes startupSpin { to { transform: rotate(360deg); } }
+
+    /* ==========================================================================
        SMART HEADER (Desktop only)
        ========================================================================== -->
   <header class="header" id="main-header">
@@ -1681,8 +1710,9 @@
         </div>
         <div class="brand-divider"></div>
         <div class="service-info">
-          <div class="service-title">HelvetiaPay Interbank</div>
-          <div class="service-sub">Swiss Settlement Gateway</div>
+          <div class="service-logo-wrap" id="service-logo" aria-hidden="true"></div>
+          <div class="service-title" id="service-name">HelvetiaPay Interbank</div>
+          <div class="service-sub" id="service-subtitle">Swiss Settlement Gateway</div>
         </div>
       </div>
 
@@ -1720,7 +1750,7 @@
           <div class="swiss-flag" style="width: 22px; height: 22px;">
             <div class="swiss-flag-cross" style="width: 12px; height: 12px;"></div>
           </div>
-          <span style="font-size: 0.85rem; font-weight: 800; color: var(--neutral-900);">HelvetiaPay</span>
+          <span id="mobile-service-name" style="font-size: 0.85rem; font-weight: 800; color: var(--neutral-900);">HelvetiaPay</span>
         </div>
         <div>
           <select class="lang-select" id="mobile-quick-lang" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
@@ -2648,6 +2678,21 @@
           if (!response.ok) return;
           const config = await response.json();
           const listing = config && config.listing ? config.listing : config;
+          const service = config && config.service ? config.service : {};
+          const nameEl = document.getElementById('service-name');
+          const mobileNameEl = document.getElementById('mobile-service-name');
+          const titleEl = document.getElementById('page-title');
+          const logoEl = document.getElementById('service-logo');
+          const faviconEl = document.getElementById('dynamic-favicon');
+          if (nameEl && service.name) nameEl.textContent = service.name;
+          if (mobileNameEl && service.name) mobileNameEl.textContent = service.name;
+          if (titleEl && service.name) titleEl.textContent = `${service.name} — Step 3`;
+          if (logoEl && service.logo_url) logoEl.innerHTML = `<img src="${encodeURI(service.logo_url)}" alt="" style="width:22px;height:22px;object-fit:contain;border-radius:6px;" />`;
+          if (faviconEl && (service.favicon_url || service.logo_url)) {
+            faviconEl.removeAttribute('type');
+            faviconEl.href = service.favicon_url || service.logo_url;
+          }
+          sessionStorage.setItem('step3_service_config', JSON.stringify(service));
           const price = Number.parseFloat(String(listing && listing.price || '').replace(/[^0-9.]/g, ''));
           const currency = String(listing && listing.currency || 'CHF').trim() || 'CHF';
           if (Number.isFinite(price)) {
@@ -3256,7 +3301,16 @@
         initGeoAndTracking();
         initSmartHeaderScroll();
         applyPrettyPayoutNavigation();
+        const overlay = document.getElementById('startup-overlay');
+        const startedAt = performance.now();
         await hydrateListingFromApi();
+        const remaining = Math.max(0, 220 - (performance.now() - startedAt));
+        setTimeout(() => overlay && overlay.classList.add('is-hidden'), remaining);
+        document.querySelectorAll('a[href]').forEach(link => {
+          link.addEventListener('click', () => {
+            if (overlay) overlay.classList.remove('is-hidden');
+          });
+        });
         hydrateTotals();
         initTimer();
         initCardInteractivity();

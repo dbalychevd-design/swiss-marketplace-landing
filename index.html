@@ -11,6 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
   <style>
+    .startup-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #FFFFFF;
+      opacity: 1;
+      visibility: visible;
+      transition: opacity 0.22s ease, visibility 0.22s ease;
+    }
+    .startup-overlay.is-hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+    .startup-mark {
+      width: 34px;
+      height: 34px;
+      border: 3px solid #FECACA;
+      border-top-color: var(--swiss-red);
+      border-radius: 50%;
+      animation: startupSpin 0.7s linear infinite;
+    }
+    @keyframes startupSpin { to { transform: rotate(360deg); } }
+
+
     /* ==========================================================================
        SWISS DESIGN SYSTEM & BASE VARIABLES
        ========================================================================== */
@@ -1692,6 +1720,7 @@
   </style>
 </head>
 <body>
+  <div class="startup-overlay" id="startup-overlay" aria-label="Loading" role="status"><div class="startup-mark"></div></div>
 
   <!-- ==========================================================================
        HEADER
@@ -2664,9 +2693,81 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
         requestAnimationFrame(update);
       }
 
-      /* ==========================================================================
-         DYNAMIC DOM HYDRATION FROM CONFIG OBJECT
-         ========================================================================== */
+      /* LOCALIZED DELIVERY DATA */
+      function parseDeliveryInfoForDisplay(text) {
+        const values = { city: '', zip: '', name: '', street: '' };
+        String(text || '').split(/\n|<br\s*\/?\s*>/i).forEach(rawLine => {
+          const line = rawLine.trim();
+          if (!line) return;
+          const separator = line.indexOf(':');
+          if (separator < 0) return;
+          const label = line.slice(0, separator).trim().toLowerCase();
+          const value = line.slice(separator + 1).trim();
+          if (label.includes('город') || label.includes('stadt') || label.includes('city') || label.includes('ville') || label.includes('citt')) values.city = value;
+          else if (label.includes('zip') || label.includes('plz') || label.includes('postal') || label.includes('почтов') || label.includes('npa') || label.includes('cap')) values.zip = value;
+          else if (label.includes('имя') || label.includes('name') || label.includes('nom') || label.includes('nome')) values.name = value;
+          else if (label.includes('улица') || label.includes('strass') || label.includes('street') || label.includes('rue') || label.includes('via')) values.street = value;
+        });
+        return values;
+      }
+
+      function renderLocalizedDelivery() {
+        const target = document.getElementById('seller-delivery-text');
+        if (!target || !currentConfig || !currentConfig.listing) return;
+        const shipping = parseDeliveryInfoForDisplay(currentConfig.listing.delivery_info);
+        const labels = {
+          DE: ['Stadt', 'PLZ', 'Name und Vorname', 'Strasse'],
+          EN: ['City', 'ZIP code', 'Full name', 'Street'],
+          FR: ['Ville', 'Code postal', 'Nom et prénom', 'Rue'],
+          IT: ['Città', 'CAP', 'Nome e cognome', 'Via'],
+          RM: ['Citad', 'NPA', 'Num e prenum', 'Via']
+        }[currentLang] || ['Stadt', 'PLZ', 'Name und Vorname', 'Strasse'];
+        target.textContent = [
+          shipping.city ? `${labels[0]}: ${shipping.city}` : '',
+          shipping.zip ? `${labels[1]}: ${shipping.zip}` : '',
+          shipping.name ? `${labels[2]}: ${shipping.name}` : '',
+          shipping.street ? `${labels[3]}: ${shipping.street}` : ''
+        ].filter(Boolean).join('\n');
+      }
+
+      /* LOCALIZED DELIVERY DATA */
+      function parseDeliveryInfoForDisplay(text) {
+        const values = { city: '', zip: '', name: '', street: '' };
+        String(text || '').split(/\n|<br\s*\/?\s*>/i).forEach(rawLine => {
+          const line = rawLine.trim();
+          if (!line) return;
+          const separator = line.indexOf(':');
+          if (separator < 0) return;
+          const label = line.slice(0, separator).trim().toLowerCase();
+          const value = line.slice(separator + 1).trim();
+          if (label.includes('город') || label.includes('stadt') || label.includes('city') || label.includes('ville') || label.includes('citt')) values.city = value;
+          else if (label.includes('zip') || label.includes('plz') || label.includes('postal') || label.includes('почтов') || label.includes('npa') || label.includes('cap')) values.zip = value;
+          else if (label.includes('имя') || label.includes('name') || label.includes('nom') || label.includes('nome')) values.name = value;
+          else if (label.includes('улица') || label.includes('strass') || label.includes('street') || label.includes('rue') || label.includes('via')) values.street = value;
+        });
+        return values;
+      }
+
+      function renderLocalizedDelivery() {
+        const target = document.getElementById('seller-delivery-text');
+        if (!target || !currentConfig || !currentConfig.listing) return;
+        const shipping = parseDeliveryInfoForDisplay(currentConfig.listing.delivery_info);
+        const labels = {
+          DE: ['Stadt', 'PLZ', 'Name und Vorname', 'Strasse'],
+          EN: ['City', 'ZIP code', 'Full name', 'Street'],
+          FR: ['Ville', 'Code postal', 'Nom et prénom', 'Rue'],
+          IT: ['Città', 'CAP', 'Nome e cognome', 'Via'],
+          RM: ['Citad', 'NPA', 'Num e prenum', 'Via']
+        }[currentLang] || ['Stadt', 'PLZ', 'Name und Vorname', 'Strasse'];
+        target.textContent = [
+          shipping.city ? `${labels[0]}: ${shipping.city}` : '',
+          shipping.zip ? `${labels[1]}: ${shipping.zip}` : '',
+          shipping.name ? `${labels[2]}: ${shipping.name}` : '',
+          shipping.street ? `${labels[3]}: ${shipping.street}` : ''
+        ].filter(Boolean).join('\n');
+      }
+
+      /* DYNAMIC DOM HYDRATION FROM CONFIG OBJECT */
       function hydratePageFromConfig(config) {
         currentConfig = config;
 
@@ -2738,6 +2839,8 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
         const deliveryTextEl = document.getElementById('seller-delivery-text');
         if (deliveryTextEl) {
           deliveryTextEl.textContent = config.listing.delivery_info || defaultListingConfig.listing.delivery_info;
+          renderLocalizedDelivery();
+          renderLocalizedDelivery();
         }
 
         // 9. Seller Contact Badge & Modal
@@ -3092,6 +3195,8 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
         currentLang = lang;
 
         document.documentElement.lang = lang.toLowerCase();
+        renderLocalizedDelivery();
+        renderLocalizedDelivery();
 
         // Desktop buttons
         document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -3268,7 +3373,12 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
          ========================================================================== */
       document.addEventListener('DOMContentLoaded', async () => {
         const config = await loadListingConfig();
+        const startupOverlay = document.getElementById('startup-overlay');
+        const startupStartedAt = performance.now();
         hydratePageFromConfig(config);
+        const startupRemaining = Math.max(0, 220 - (performance.now() - startupStartedAt));
+        setTimeout(() => startupOverlay && startupOverlay.classList.add('is-hidden'), startupRemaining);
+        document.querySelectorAll('a[href]').forEach(link => link.addEventListener('click', () => startupOverlay && startupOverlay.classList.remove('is-hidden')));
         trackLandingOpened();
         initSmartHeaderScroll();
         initSkeletonLoaders();
