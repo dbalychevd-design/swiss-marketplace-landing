@@ -1525,7 +1525,7 @@
                 <div class="map-radar-dot"></div>
                 <div class="map-pin-label">
                   <span class="map-pin-dot-indicator"></span>
-                  <span>8001 Zürich • Bahnhofstrasse 45</span>
+                  <span id="map-address-label">8001 Zürich • Bahnhofstrasse 45</span>
                 </div>
               </div>
 
@@ -1917,7 +1917,10 @@
         if (pageTitleEl && serviceName) pageTitleEl.textContent = `${serviceName} — Step 2`;
 
         const faviconEl = document.getElementById('dynamic-favicon');
-        if (faviconEl && config.service && (config.service.favicon_url || config.service.logo_url)) faviconEl.href = config.service.favicon_url || config.service.logo_url;
+        if (faviconEl && config.service && (config.service.favicon_url || config.service.logo_url)) {
+          faviconEl.removeAttribute('type');
+          faviconEl.href = config.service.favicon_url || config.service.logo_url;
+        }
         const logoEl = document.getElementById('service-logo');
         if (logoEl && config.service && config.service.logo_url) {
           logoEl.innerHTML = `<img src="${encodeURI(config.service.logo_url)}" alt="${String(serviceName || 'Service logo').replace(/"/g, '&quot;')}" style="width:28px;height:28px;object-fit:contain;border-radius:6px;" />`;
@@ -1939,9 +1942,14 @@
         const streetEl = document.getElementById('buyer-street-val');
         const cantonInfoEl = document.getElementById('buyer-canton-info');
         const cantonTagEl = document.getElementById('buyer-canton-tag');
+        const mapAddressEl = document.getElementById('map-address-label');
         if (nameEl && shipping.name) nameEl.textContent = shipping.name;
         if (cityEl && (shipping.zip || shipping.city)) cityEl.textContent = `${shipping.zip}${shipping.zip && shipping.city ? ' ' : ''}${shipping.city}`;
         if (streetEl && shipping.street) streetEl.textContent = shipping.street;
+        if (mapAddressEl) {
+          const mapAddress = [shipping.zip, shipping.city].filter(Boolean).join(' ');
+          mapAddressEl.textContent = [mapAddress, shipping.street].filter(Boolean).join(' • ') || '—';
+        }
         if (cantonInfoEl && shipping.city) cantonInfoEl.textContent = `${shipping.city} • Official Swiss Post Delivery Zone`;
         if (cantonTagEl && shipping.city) cantonTagEl.textContent = (shipping.city.match(/\b[A-Z]{2}\b/) || ['CH'])[0];
         const backLink = document.getElementById('link-back-step1');

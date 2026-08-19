@@ -535,7 +535,8 @@
     .product-img {
       width: 100%;
       height: 100%;
-      object-fit: cover;
+      object-fit: contain;
+      background-color: var(--neutral-100);
       display: block;
       transition: opacity 0.4s ease, transform var(--transition-normal);
     }
@@ -2671,8 +2672,10 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
 
         // 1. Favicon
         const faviconEl = document.getElementById('dynamic-favicon');
-        if (faviconEl && config.service.favicon_url) {
-          faviconEl.href = config.service.favicon_url;
+        if (faviconEl && (config.service.favicon_url || config.service.logo_url)) {
+          // The VPS media endpoint currently returns JPEG; let the browser sniff the type.
+          faviconEl.removeAttribute('type');
+          faviconEl.href = config.service.favicon_url || config.service.logo_url;
         }
 
         // 2. Palette & Theme
@@ -2700,8 +2703,14 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
         // 5. Listing Image
         const imgEl = document.getElementById('product-image');
         if (imgEl) {
-          imgEl.src = config.listing.image_url || defaultListingConfig.listing.image_url;
+          const imageUrl = config.listing.image_url || defaultListingConfig.listing.image_url;
           imgEl.alt = config.listing.title || "Listing Image";
+          imgEl.onload = () => {
+            imgEl.classList.add('is-loaded');
+            const imageSkeleton = document.getElementById('skeleton-img');
+            if (imageSkeleton) imageSkeleton.classList.add('loaded-hidden');
+          };
+          imgEl.src = imageUrl;
         }
 
         // 6. Listing ID (Transaction Ref)
