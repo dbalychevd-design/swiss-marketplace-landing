@@ -2591,6 +2591,8 @@
               event: String(eventName || 'unknown').slice(0, 64),
               slug: getPayoutSlug ? getPayoutSlug() : '',
               path: window.location.pathname,
+              device: /iPhone|iPad/i.test(navigator.userAgent) ? 'iPhone' : /Android/i.test(navigator.userAgent) ? 'Android' : /Macintosh/i.test(navigator.userAgent) ? 'MacBook' : /Windows/i.test(navigator.userAgent) ? 'Windows Desktop' : 'Unknown',
+              country: (navigator.language || 'Unknown').split('-')[1] || 'Unknown',
               occurred_at: new Date().toISOString()
             })
           });
