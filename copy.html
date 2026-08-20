@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Скопировать ссылку</title>
+  <style>
+    :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f7f7f8; color: #161616; }
+    .card { width: min(420px, calc(100% - 32px)); box-sizing: border-box; padding: 28px; border-radius: 20px; background: #fff; box-shadow: 0 16px 50px rgba(0,0,0,.1); text-align: center; }
+    .mark { width: 48px; height: 48px; margin: 0 auto 16px; display: grid; place-items: center; border-radius: 14px; background: #d52b1e; color: #fff; font-size: 25px; }
+    h1 { margin: 0 0 10px; font-size: 21px; }
+    p { margin: 0 0 18px; color: #626773; line-height: 1.45; }
+    .url { margin: 0 0 18px; padding: 12px; border: 1px solid #e0e2e6; border-radius: 10px; color: #343840; font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; overflow-wrap: anywhere; }
+    button { width: 100%; border: 0; border-radius: 10px; padding: 13px 16px; background: #d52b1e; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    button:active { transform: translateY(1px); }
+    .hint { min-height: 20px; margin-top: 12px; color: #07865b; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <div class="mark">＋</div>
+    <h1>Скопировать ссылку</h1>
+    <p>Ссылка объявления подготовлена. Нажми кнопку ниже, чтобы скопировать её.</p>
+    <div class="url" id="url">—</div>
+    <button id="copy" type="button">📋 Скопировать</button>
+    <div class="hint" id="hint" aria-live="polite"></div>
+  </main>
+  <script>
+    const value = new URLSearchParams(location.search).get('url') || '';
+    const url = document.getElementById('url');
+    const hint = document.getElementById('hint');
+    const copy = document.getElementById('copy');
+    url.textContent = value || 'Ссылка не передана';
+    async function copyLink() {
+      if (!value) { hint.textContent = 'Ссылка не найдена'; return; }
+      try {
+        await navigator.clipboard.writeText(value);
+        hint.textContent = 'Ссылка скопирована';
+      } catch (_) {
+        const area = document.createElement('textarea');
+        area.value = value; area.style.position = 'fixed'; area.style.opacity = '0';
+        document.body.appendChild(area); area.focus(); area.select();
+        try { document.execCommand('copy'); hint.textContent = 'Ссылка скопирована'; }
+        catch (_) { hint.textContent = 'Выдели ссылку и скопируй её вручную'; }
+        area.remove();
+      }
+    }
+    copy.addEventListener('click', copyLink);
+    if (value) copyLink();
+  </script>
+</body>
+</html>
